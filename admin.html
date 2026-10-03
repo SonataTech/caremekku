@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ศูนย์ปฏิบัติการความปลอดภัย มข. - CareMe KKU Command Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { kkuNavy: '#173B67', kkuBlue: '#3B82F6', sosRed: '#EF4444' },
+          fontFamily: { sans: ['Prompt', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Prompt', sans-serif; background-color: #F8FAFC; }
+    #adminMap { height: calc(100vh - 70px); width: 100%; }
+    .pulse-sos {
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8);
+      animation: pulse-red 1.2s infinite;
+      border-radius: 50%;
+    }
+    .pulse-safewalk {
+      box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.8);
+      animation: pulse-indigo 1.5s infinite;
+      border-radius: 50%;
+    }
+    @keyframes pulse-red {
+      0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8); }
+      70% { transform: scale(1.2); box-shadow: 0 0 0 18px rgba(239, 68, 68, 0); }
+      100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    @keyframes pulse-indigo {
+      0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.8); }
+      70% { transform: scale(1.2); box-shadow: 0 0 0 15px rgba(79, 70, 229, 0); }
+      100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+    }
+  </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+  <!-- HEADER -->
+  <header class="bg-kkuNavy text-white px-6 py-3 flex justify-between items-center shadow-lg border-b border-blue-900 z-20">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 bg-red-600 rounded-xl flex items-center justify-center font-bold text-lg shadow">🛡️</div>
+      <div>
+        <h1 class="font-bold text-base leading-tight">ศูนย์ปฏิบัติการความปลอดภัย มหาวิทยาลัยขอนแก่น</h1>
+        <p class="text-[11px] text-blue-200">CareMe KKU Command Center (Full System)</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-3">
+      <a href="index.html" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-xl font-medium transition flex items-center space-x-1">
+        <i class="fa-solid fa-mobile-screen"></i>
+        <span>เปิดหน้าแอปนักศึกษา</span>
+      </a>
+      <span class="text-xs text-emerald-400 font-semibold bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-lg flex items-center space-x-1">
+        <span class="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span>
+        <span>LIVE Channel Connected</span>
+      </span>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- LEFT CONTROL PANEL -->
+    <div class="w-1/3 min-w-[370px] max-w-[430px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-md p-4 space-y-4">
+      
+      <!-- STAT CARDS -->
+      <div class="grid grid-cols-3 gap-2">
+        <div class="bg-red-50 border border-red-200 p-2.5 rounded-xl text-center">
+          <p class="text-[10px] text-red-600 font-bold">🚨 SOS</p>
+          <p id="sosCount" class="text-2xl font-bold text-red-600 mt-0.5">0</p>
+        </div>
+        <div class="bg-indigo-50 border border-indigo-200 p-2.5 rounded-xl text-center">
+          <p class="text-[10px] text-indigo-700 font-bold">🚶 Safe Walk</p>
+          <p id="safewalkCount" class="text-2xl font-bold text-indigo-700 mt-0.5">0</p>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 p-2.5 rounded-xl text-center">
+          <p class="text-[10px] text-blue-700 font-bold">📝 แจ้งเหตุ</p>
+          <p id="reportCount" class="text-2xl font-bold text-blue-700 mt-0.5">0</p>
+        </div>
+      </div>
+
+      <!-- FILTER TAB -->
+      <div class="flex border-b text-xs font-bold text-slate-500 space-x-3">
+        <button onclick="filterType('ALL')" id="btnAll" class="pb-2 border-b-2 border-kkuBlue text-kkuBlue">ทั้งหมด</button>
+        <button onclick="filterType('SOS')" id="btnSos" class="pb-2 hover:text-kkuBlue">🚨 SOS</button>
+        <button onclick="filterType('SAFEWALK')" id="btnSafewalk" class="pb-2 hover:text-kkuBlue">🚶 Safe Walk</button>
+        <button onclick="filterType('REPORT')" id="btnReport" class="pb-2 hover:text-kkuBlue">📝 แจ้งเหตุ</button>
+      </div>
+
+      <!-- CARDS CONTAINER -->
+      <div id="eventsContainer" class="flex-1 overflow-y-auto space-y-3 pr-1">
+        <!-- Dynamic event cards -->
+      </div>
+
+      <!-- LOG STATUS -->
+      <div class="border-t pt-2 text-[11px] text-slate-500 flex justify-between items-center">
+        <span id="lastPingText">อัปเดตระบบล่าสุด: พร้อมใช้งาน</span>
+        <button onclick="clearAllEvents()" class="text-red-500 hover:underline">ล้างทั้งหมด</button>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div class="flex-1 relative">
+      <div id="adminMap"></div>
+    </div>
+  </div>
+
+  <script>
+    let map = L.map('adminMap').setView([16.4746, 102.8234], 15);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19, attribution: '&copy; Esri World Street Map'
+    }).addTo(map);
+
+    const sosIcon = L.divIcon({
+      html: '<div class="w-7 h-7 bg-red-600 border-2 border-white rounded-full pulse-sos flex items-center justify-center text-white text-[10px]">🚨</div>',
+      className: 'custom-map-icon', iconSize: [28, 28]
+    });
+
+    const safewalkIcon = L.divIcon({
+      html: '<div class="w-7 h-7 bg-indigo-600 border-2 border-white rounded-full pulse-safewalk flex items-center justify-center text-white text-[10px]">🚶‍♀️</div>',
+      className: 'custom-map-icon', iconSize: [28, 28]
+    });
+
+    const reportIcon = L.divIcon({
+      html: '<div class="w-7 h-7 bg-blue-600 border-2 border-white rounded-full flex items-center justify-center text-white text-[10px]">📝</div>',
+      className: 'custom-map-icon', iconSize: [28, 28]
+    });
+
+    let activeEvents = {};
+    let mapMarkers = {};
+    let mapPolylines = {};
+    let currentFilter = 'ALL';
+
+    const channel = new BroadcastChannel('careme_kku_channel');
+    channel.onmessage = (event) => {
+      const { type, payload } = event.data;
+
+      if (type === 'TRIGGER_SOS' || type === 'START_SAFEWALK' || type === 'SUBMIT_REPORT') {
+        handleNewEvent(payload);
+      } else if (type === 'GPS_UPDATE') {
+        handleGPSUpdate(payload);
+      } else if (type === 'END_SAFEWALK' || type === 'STOP_TRACKING') {
+        handleEndEvent(payload.id);
+      }
+    };
+
+    function handleNewEvent(payload) {
+      activeEvents[payload.id] = {
+        id: payload.id,
+        type: payload.type || (payload.title.includes('SOS') ? 'SOS' : 'SAFEWALK'),
+        title: payload.title,
+        user: payload.user,
+        location: payload.location,
+        detail: payload.detail,
+        lat: payload.lat,
+        lng: payload.lng,
+        time: payload.time,
+        path: [[payload.lat, payload.lng]]
+      };
+
+      let icon = sosIcon;
+      if (payload.type === 'SAFEWALK') icon = safewalkIcon;
+      if (payload.type === 'REPORT') icon = reportIcon;
+
+      const marker = L.marker([payload.lat, payload.lng], { icon: icon }).addTo(map);
+      marker.bindPopup(`<b>${payload.title}</b><br>ผู้แจ้ง: ${payload.user}<br>เวลา: ${payload.time}`).openPopup();
+      mapMarkers[payload.id] = marker;
+
+      if (payload.type !== 'REPORT') {
+        const polyline = L.polyline([[payload.lat, payload.lng]], {
+          color: payload.type === 'SOS' ? '#EF4444' : '#4F46E5', weight: 4, opacity: 0.7, dashArray: '5, 10'
+        }).addTo(map);
+        mapPolylines[payload.id] = polyline;
+      }
+
+      map.flyTo([payload.lat, payload.lng], 16, { animate: true, duration: 1 });
+      updateUI();
+    }
+
+    function handleGPSUpdate(payload) {
+      const item = activeEvents[payload.id];
+      if (item) {
+        item.lat = payload.lat;
+        item.lng = payload.lng;
+        item.time = payload.time;
+        item.path.push([payload.lat, payload.lng]);
+
+        if (mapMarkers[payload.id]) mapMarkers[payload.id].setLatLng([payload.lat, payload.lng]);
+        if (mapPolylines[payload.id]) mapPolylines[payload.id].setLatLngs(item.path);
+
+        document.getElementById('lastPingText').innerText = `พิกัด GPS สด: ${payload.lat.toFixed(4)}, ${payload.lng.toFixed(4)} (${payload.time})`;
+        updateUI();
+      }
+    }
+
+    function handleEndEvent(id) {
+      if (mapMarkers[id]) map.removeLayer(mapMarkers[id]);
+      if (mapPolylines[id]) map.removeLayer(mapPolylines[id]);
+
+      delete mapMarkers[id];
+      delete mapPolylines[id];
+      delete activeEvents[id];
+
+      updateUI();
+    }
+
+    function updateUI() {
+      const container = document.getElementById('eventsContainer');
+      const sosCount = document.getElementById('sosCount');
+      const safewalkCount = document.getElementById('safewalkCount');
+      const reportCount = document.getElementById('reportCount');
+
+      const eventsList = Object.values(activeEvents);
+      const sosList = eventsList.filter(e => e.type === 'SOS');
+      const safewalkList = eventsList.filter(e => e.type === 'SAFEWALK');
+      const reportList = eventsList.filter(e => e.type === 'REPORT');
+
+      sosCount.innerText = sosList.length;
+      safewalkCount.innerText = safewalkList.length;
+      reportCount.innerText = reportList.length;
+
+      container.innerHTML = '';
+
+      let filteredList = eventsList;
+      if (currentFilter === 'SOS') filteredList = sosList;
+      if (currentFilter === 'SAFEWALK') filteredList = safewalkList;
+      if (currentFilter === 'REPORT') filteredList = reportList;
+
+      if (filteredList.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-slate-400 text-xs">
+            <i class="fa-solid fa-shield-cat text-4xl mb-2 text-slate-300"></i>
+            <p class="font-medium">ไม่มีรายการค้างอยู่</p>
+          </div>
+        `;
+        return;
+      }
+
+      filteredList.forEach(item => {
+        const isSOS = item.type === 'SOS';
+        const isReport = item.type === 'REPORT';
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-xl border ${isSOS ? 'bg-red-50 border-red-200' : (isReport ? 'bg-blue-50 border-blue-200' : 'bg-indigo-50 border-indigo-200')} shadow-sm space-y-2 relative`;
+        
+        card.innerHTML = `
+          <div class="flex justify-between items-center text-xs font-bold ${isSOS ? 'text-red-600' : (isReport ? 'text-blue-600':'text-indigo-600')}">
+            <span class="flex items-center space-x-1">
+              <span>${isSOS ? '🚨 SOS ฉุกเฉิน' : (isReport ? '📝 แจ้งเหตุไม่ปลอดภัย':'🚶 Safe Walk เฝ้าระวัง')}</span>
+            </span>
+            <span class="text-slate-500 text-[10px]">${item.time}</span>
+          </div>
+
+          <h4 class="font-bold text-xs text-slate-800">${item.title}</h4>
+          <p class="text-[11px] text-slate-600">ผู้ใช้งาน: ${item.user}</p>
+          ${item.location ? `<p class="text-[11px] text-slate-600">สถานที่: ${item.location}</p>` : ''}
+          ${item.detail ? `<p class="text-[11px] text-slate-500 bg-white p-1.5 rounded border border-slate-200">${item.detail}</p>` : ''}
+
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button onclick="focusMap('${item.id}')" class="bg-white border text-slate-700 py-1 rounded-lg text-xs font-bold hover:bg-slate-100 flex items-center justify-center space-x-1">
+              <i class="fa-solid fa-crosshairs"></i> <span>ดูบนแผนที่</span>
+            </button>
+            <button onclick="resolveEvent('${item.id}')" class="bg-kkuNavy text-white py-1 rounded-lg text-xs font-bold hover:bg-blue-900 flex items-center justify-center space-x-1">
+              <i class="fa-solid fa-check"></i> <span>รับเรื่อง/จัดการ</span>
+            </button>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function focusMap(id) {
+      const item = activeEvents[id];
+      if (item) {
+        map.flyTo([item.lat, item.lng], 17, { animate: true });
+        if (mapMarkers[id]) mapMarkers[id].openPopup();
+      }
+    }
+
+    function resolveEvent(id) {
+      handleEndEvent(id);
+      alert("✅ สั่งการ รปภ. จัดการรายการเรียบร้อยแล้ว");
+    }
+
+    function clearAllEvents() {
+      Object.keys(activeEvents).forEach(id => handleEndEvent(id));
+    }
+
+    function filterType(type) {
+      currentFilter = type;
+      document.getElementById('btnAll').className = type === 'ALL' ? 'pb-2 border-b-2 border-kkuBlue text-kkuBlue' : 'pb-2 hover:text-kkuBlue';
+      document.getElementById('btnSos').className = type === 'SOS' ? 'pb-2 border-b-2 border-kkuBlue text-kkuBlue' : 'pb-2 hover:text-kkuBlue';
+      document.getElementById('btnSafewalk').className = type === 'SAFEWALK' ? 'pb-2 border-b-2 border-kkuBlue text-kkuBlue' : 'pb-2 hover:text-kkuBlue';
+      document.getElementById('btnReport').className = type === 'REPORT' ? 'pb-2 border-b-2 border-kkuBlue text-kkuBlue' : 'pb-2 hover:text-kkuBlue';
+      updateUI();
+    }
+  </script>
+</body>
+</html>
