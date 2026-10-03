@@ -160,6 +160,7 @@
         user: payload.user,
         location: payload.location,
         detail: payload.detail,
+        image: payload.image,
         lat: payload.lat,
         lng: payload.lng,
         time: payload.time,
@@ -262,6 +263,7 @@
           <p class="text-[11px] text-slate-600">ผู้ใช้งาน: ${item.user}</p>
           ${item.location ? `<p class="text-[11px] text-slate-600">สถานที่: ${item.location}</p>` : ''}
           ${item.detail ? `<p class="text-[11px] text-slate-500 bg-white p-1.5 rounded border border-slate-200">${item.detail}</p>` : ''}
+          ${item.image ? `<div class="mt-2"><img src="${item.image}" class="w-full h-32 object-cover rounded-lg border border-slate-200 shadow-sm" alt="ภาพถ่ายแนบ"></div>` : ''}
 
           <div class="grid grid-cols-2 gap-2 pt-1">
             <button onclick="focusMap('${item.id}')" class="bg-white border text-slate-700 py-1 rounded-lg text-xs font-bold hover:bg-slate-100 flex items-center justify-center space-x-1">
