@@ -88,7 +88,7 @@
         </button>
       </div>
 
-      <!-- TAB 1: HOME (หน้าหลัก) -->
+      <!-- TAB 1: HOME -->
       <div id="tabHome" class="space-y-4">
         <!-- SOS CARD BUTTON -->
         <div id="sosCard" class="bg-gradient-to-br from-red-500 to-red-600 rounded-3xl p-5 text-white shadow-lg shadow-red-500/25 relative overflow-hidden select-none">
@@ -140,7 +140,7 @@
         </div>
       </div>
 
-      <!-- TAB 2: REPORT (หน้าแจ้งเหตุ) -->
+      <!-- TAB 2: REPORT -->
       <div id="tabReport" class="hidden space-y-4">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
           <div class="flex items-center space-x-2 text-kkuBlue font-bold text-base border-b pb-2">
@@ -154,10 +154,10 @@
               <label class="block text-xs font-bold text-slate-700 mb-1">ประเภทการแจ้งเหตุ</label>
               <select id="reportCategory" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium text-slate-800">
                 <option value="💡 ไฟส่องสว่างทางเดินดับ/ชำรุด">💡 ไฟส่องสว่างทางเดินดับ / ชำรุด</option>
-                <option value="👁️ พบบุคคลสงสัย / ก่อความรำคาญ">👁️ พบบุคคลสงสัย / ก่อความรำคาญ</option>
+                <option value="👁 พบบุคคลสงสัย / ก่อความรำคาญ">👁️ พบบุคคลสงสัย / ก่อความรำคาญ</option>
                 <option value="💥 อุบัติเหตุจราจรใน มข.">💥 อุบัติเหตุจราจรใน มข.</option>
                 <option value="🐍 สัตว์พิษ / งู / สัตว์ร้าย">🐍 สัตว์พิษ / งู / สัตว์ร้าย</option>
-                <option value="🛠️ สิ่งชำรุดเสี่ยงอันตราย">🛠️ สิ่งชำรุดเสี่ยงอันตราย</option>
+                <option value="🛠️️ สิ่งชำรุดเสี่ยงอันตราย">🛠️ สิ่งชำรุดเสี่ยงอันตราย</option>
               </select>
             </div>
 
@@ -177,7 +177,7 @@
               <input type="file" id="reportImageInput" accept="image/*" capture="environment" class="hidden" onchange="previewReportImage(event)">
               <div onclick="document.getElementById('reportImageInput').click()" class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center text-slate-500 text-xs bg-slate-50 hover:bg-slate-100 transition cursor-pointer relative overflow-hidden">
                 <div id="imagePreviewContainer" class="hidden flex flex-col items-center">
-                  <img id="imagePreview" class="max-h-40 rounded-lg mb-2 object-cover border border-slate-200 shadow-sm" src="" alt="พรีวิวภาพถ่าย" />
+                  <img id="imagePreview" class="max-h-48 rounded-lg mb-2 object-contain border border-slate-200 shadow-sm bg-black/5" src="" alt="พรีวิวภาพถ่าย" />
                   <span class="text-kkuBlue font-bold text-[11px]"><i class="fa-solid fa-rotate"></i> กดเพื่อถ่ายใหม่ / เปลี่ยนภาพ</span>
                 </div>
                 <div id="imagePlaceholder" class="flex flex-col items-center">
@@ -195,7 +195,7 @@
         </div>
       </div>
 
-      <!-- TAB 3: MAP (หน้าแผนที่จุดปลอดภัย) -->
+      <!-- TAB 3: MAP -->
       <div id="tabMap" class="hidden space-y-4">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
           <div class="flex justify-between items-center border-b pb-2">
@@ -206,7 +206,6 @@
             <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Interactive Map</span>
           </div>
 
-          <!-- CATEGORY FILTERS -->
           <div class="flex space-x-2 overflow-x-auto no-scrollbar py-1 text-xs">
             <button onclick="filterMapPoints('ALL')" id="btnMapAll" class="bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold whitespace-nowrap shadow-sm">ทั้งหมด</button>
             <button onclick="filterMapPoints('BOX')" id="btnMapBox" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap">🚨 ตู้แดง SOS</button>
@@ -214,10 +213,8 @@
             <button onclick="filterMapPoints('GUARD')" id="btnMapGuard" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap">👮 ป้อม รปภ.</button>
           </div>
 
-          <!-- FULL INTERACTIVE MAP -->
           <div id="fullMap" class="shadow-inner border border-slate-200"></div>
 
-          <!-- LEGEND INFO -->
           <div class="grid grid-cols-3 gap-2 text-[11px] pt-1 text-slate-600">
             <div class="flex items-center space-x-1.5 bg-red-50 p-2 rounded-xl border border-red-100">
               <span class="text-red-500 font-bold text-sm">🚨</span>
@@ -235,7 +232,7 @@
         </div>
       </div>
 
-      <!-- TAB 4: SAFE WALK (หน้า Safe Walk) -->
+      <!-- TAB 4: SAFE WALK -->
       <div id="tabSafewalk" class="hidden space-y-4">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
           <div class="flex items-center space-x-2 text-indigo-600 font-bold text-base border-b pb-2">
@@ -284,7 +281,7 @@
         </div>
       </div>
 
-      <!-- TAB 5: SECURITY CENTER (หน้าศูนย์ รปภ.) -->
+      <!-- TAB 5: SECURITY CENTER -->
       <div id="tabSecurity" class="hidden space-y-4">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
           <div class="flex items-center justify-between border-b pb-2">
@@ -297,7 +294,6 @@
 
           <p class="text-xs text-slate-600">ติดต่อศูนย์รักษาความปลอดภัย มหาวิทยาลัยขอนแก่น หรือเปลี่ยนไปยังหน้าจอ Dashboard สำหรับเจ้าหน้าที่ปฏิบัติการ</p>
 
-          <!-- QUICK CALL HOTLINES -->
           <div class="space-y-2 pt-1">
             <p class="text-xs font-bold text-slate-700">📞 สายด่วนฉุกเฉิน (กดโทรออกทันที)</p>
             
@@ -341,7 +337,6 @@
             </a>
           </div>
 
-          <!-- PATROL STATUS CARD -->
           <div class="bg-gradient-to-r from-slate-800 to-kkuNavy text-white rounded-2xl p-4 shadow-sm space-y-2 mt-3">
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-sky-200">🛡️ สถานะการเตรียมพร้อมสายตรวจ</span>
@@ -363,7 +358,6 @@
             </div>
           </div>
 
-          <!-- COMMAND CENTER LINK BUTTON -->
           <div class="pt-2">
             <a href="admin.html" target="_blank" class="w-full bg-slate-900 hover:bg-black text-white font-bold text-xs py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2">
               <i class="fa-solid fa-desktop text-sky-400"></i>
@@ -425,6 +419,18 @@
       { name: "ป้อม รปภ. หน้าหอพักนักศึกษาชาย", type: "GUARD", lat: 16.4780, lng: 102.8220 }
     ];
 
+    // ฟังก์ชันช่วยบันทึกข้อมูลลง localStorage ในเครื่อง
+    function saveToLocal(key, newItem) {
+      try {
+        let list = JSON.parse(localStorage.getItem(key) || '[]');
+        list.unshift(newItem);
+        if (list.length > 50) list = list.slice(0, 50); // เก็บล่าสุด 50 รายการ
+        localStorage.setItem(key, JSON.stringify(list));
+      } catch(e) {
+        console.error("localStorage Save Error:", e);
+      }
+    }
+
     function initMiniMap() {
       if(!miniMapInstance) {
         miniMapInstance = L.map('miniMap', { zoomControl: false }).setView([currentLat, currentLng], 15);
@@ -483,7 +489,6 @@
       checkDeviceGPS();
     };
 
-    // ปรับแต่งการดึงสิทธิ์ GPS ให้ถามครั้งเดียว ไม่เด้งขอสิทธิ์ซ้ำ
     function checkDeviceGPS() {
       if ("geolocation" in navigator) {
         navigator.geolocation.watchPosition(
@@ -499,19 +504,48 @@
       }
     }
 
-    // ฟังก์ชั่นพรีวิวภาพถ่ายจริง
+    // ย่อขนาดรูปภาพจากกล้องมือถือให้เหลือ ~100KB อัตโนมัติ
     function previewReportImage(event) {
       const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          selectedImageData = e.target.result;
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          selectedImageData = canvas.toDataURL('image/jpeg', 0.7);
+
           document.getElementById('imagePreview').src = selectedImageData;
           document.getElementById('imagePreviewContainer').classList.remove('hidden');
           document.getElementById('imagePlaceholder').classList.add('hidden');
+          
+          event.target.value = '';
         };
-        reader.readAsDataURL(file);
-      }
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
     }
 
     function toggleNetSim() {
@@ -571,6 +605,8 @@
         lng: currentLng,
         time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
       };
+
+      saveToLocal('careme_sos_data', initialPayload);
       dispatchEvent(type === 'SOS' ? 'TRIGGER_SOS' : 'START_SAFEWALK', initialPayload);
 
       gpsInterval = setInterval(() => {
@@ -626,10 +662,10 @@
         time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
       };
 
+      saveToLocal('careme_report_data', payload);
       dispatchEvent('SUBMIT_REPORT', payload);
       alert("✅ ส่งรายงานการแจ้งเหตุไปยังศูนย์ รปภ. เรียบร้อยแล้ว!");
       
-      // ล้างข้อมูลฟอร์ม
       document.getElementById('reportLocation').value = '';
       document.getElementById('reportDetail').value = '';
       document.getElementById('reportImageInput').value = '';
@@ -661,7 +697,6 @@
       alert("🎉 คุณเดินทางถึงที่หมายปลอดภัยเรียบร้อยแล้ว!");
     }
 
-    // TAB SWITCHING LOGIC
     function switchTab(tab) {
       document.getElementById('tabHome').classList.add('hidden');
       document.getElementById('tabReport').classList.add('hidden');
