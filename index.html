@@ -788,23 +788,24 @@
         .catch((err) => console.log('Service Worker Failed!', err));
     });
   }
-function updateOnlineStatus() {
-  const isOnline = navigator.onLine;
-  const statusElement = document.getElementById('networkStatus');
-  
-  if (statusElement) {
-    if (isOnline) {
-      statusElement.innerText = "ออนไลน์";
-      statusElement.className = "text-green-500 font-bold";
-    } else {
-      statusElement.innerText = "ออฟไลน์";
-      statusElement.className = "text-red-500 font-bold";
-    }
+function autoUpdateOnlineStatus() {
+  const dot = document.getElementById('netDot');
+  const text = document.getElementById('netStatusText');
+  const badge = document.getElementById('networkBadge');
+
+  if (navigator.onLine) {
+    if (dot) dot.textContent = '🟢';
+    if (text) text.textContent = 'ออนไลน์';
+    if (badge) badge.className = "text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1";
+  } else {
+    if (dot) dot.textContent = '🔴';
+    if (text) text.textContent = 'ออฟไลน์';
+    if (badge) badge.className = "text-[10px] bg-red-500/20 text-red-300 border border-red-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1";
   }
 }
-window.addEventListener('online', updateOnlineStatus);
-window.addEventListener('offline', updateOnlineStatus);
-document.addEventListener('DOMContentLoaded', updateOnlineStatus);
+window.addEventListener('online', autoUpdateOnlineStatus);
+window.addEventListener('offline', autoUpdateOnlineStatus);
+document.addEventListener('DOMContentLoaded', autoUpdateOnlineStatus);
 </script>
 </body>
 </html>
