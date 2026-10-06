@@ -58,9 +58,9 @@
           <span class="font-bold text-lg tracking-wide text-white">CareMe KKU</span>
         </div>
         <div class="flex items-center space-x-2">
-          <button onclick="toggleNetSim()" id="networkBadge" class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1 hover:bg-emerald-500/30">
-            <span id="netDot">🟢</span> <span id="netStatusText">ออนไลน์</span>
-          </button>
+          <div id="networkBadge" class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1">
+        <span id="netDot">🟢</span> <span id="netStatusText">ออนไลน์</span>
+        </div>
         </div>
       </div>
       <div>
@@ -792,20 +792,26 @@ function autoUpdateOnlineStatus() {
   const dot = document.getElementById('netDot');
   const text = document.getElementById('netStatusText');
   const badge = document.getElementById('networkBadge');
+  const banner = document.getElementById('offlineQueueBanner');
 
-  if (navigator.onLine) {
+  if (isOnline) {
     if (dot) dot.textContent = '🟢';
     if (text) text.textContent = 'ออนไลน์';
     if (badge) badge.className = "text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1";
+    if (banner) banner.classList.add('hidden');
+    processOfflineQueue(); 
   } else {
     if (dot) dot.textContent = '🔴';
     if (text) text.textContent = 'ออฟไลน์';
     if (badge) badge.className = "text-[10px] bg-red-500/20 text-red-300 border border-red-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1";
+    if (banner && offlineQueue.length > 0) banner.classList.remove('hidden');
   }
 }
-window.addEventListener('online', autoUpdateOnlineStatus);
-window.addEventListener('offline', autoUpdateOnlineStatus);
-document.addEventListener('DOMContentLoaded', autoUpdateOnlineStatus);
+
+window.addEventListener('online', updateNetworkStatus);
+window.addEventListener('offline', updateNetworkStatus);
+document.addEventListener('DOMContentLoaded', updateNetworkStatus);
+window.addEventListener('load', updateNetworkStatus);
 </script>
 </body>
 </html>
