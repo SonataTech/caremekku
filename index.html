@@ -788,6 +788,23 @@
         .catch((err) => console.log('Service Worker Failed!', err));
     });
   }
+function updateOnlineStatus() {
+  const isOnline = navigator.onLine;
+  const statusElement = document.getElementById('networkStatus');
+
+  if (statusElement) {
+    if (isOnline) {
+      statusElement.innerText = "ออนไลน์";
+      statusElement.className = "text-green-500"; // หรือคลาสสีที่ใช้
+    } else {
+      statusElement.innerText = "ออฟไลน์ (โหมดไม่มีเน็ต)";
+      statusElement.className = "text-red-500";
+    }
+  }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+document.addEventListener('DOMContentLoaded', updateOnlineStatus);
 </script>
 </body>
 </html>
