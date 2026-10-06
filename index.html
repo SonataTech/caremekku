@@ -791,14 +791,14 @@
 function updateOnlineStatus() {
   const isOnline = navigator.onLine;
   const statusElement = document.getElementById('networkStatus');
-
+  
   if (statusElement) {
     if (isOnline) {
       statusElement.innerText = "ออนไลน์";
-      statusElement.className = "text-green-500"; // หรือคลาสสีที่ใช้
+      statusElement.className = "text-green-500 font-bold";
     } else {
-      statusElement.innerText = "ออฟไลน์ (โหมดไม่มีเน็ต)";
-      statusElement.className = "text-red-500";
+      statusElement.innerText = "ออฟไลน์";
+      statusElement.className = "text-red-500 font-bold";
     }
   }
 }
