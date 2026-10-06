@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CareMe KKU - ศูนย์ควบคุม Command Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-database-compat.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { kkuNavy: '#173B67', kkuBlue: '#3B82F6', sosRed: '#EF4444' },
+          fontFamily: { sans: ['Prompt', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
+
+  <!-- NAVBAR -->
+  <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center shadow-lg">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center font-bold text-white shadow-md">
+        <i class="fa-solid fa-shield-cat text-xl"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-lg text-white">CareMe KKU - Command Center</h1>
+        <p class="text-xs text-slate-400">ศูนย์ปฏิบัติการและเฝ้าระวังความปลอดภัย มหาวิทยาลัยขอนแก่น</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-3">
+      <button onclick="clearAdminLogs()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-3 py-2 rounded-lg font-bold transition flex items-center space-x-1">
+        <i class="fa-solid fa-trash"></i>
+        <span>ล้างประวัติการแจ้งเตือน</span>
+      </button>
+      <a href="index.html" class="bg-kkuBlue hover:bg-blue-600 text-white text-xs px-4 py-2 rounded-lg font-bold transition flex items-center space-x-1 shadow">
+        <i class="fa-solid fa-mobile-screen"></i>
+        <span>เปิดหน้าแอปนักศึกษา</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+    
+    <!-- LEFT PANEL: ALERTS LIST -->
+    <div class="lg:col-span-1 space-y-4 flex flex-col">
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex-1 flex flex-col shadow-md">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-3">
+          <div class="flex items-center space-x-2">
+            <span class="relative flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+            </span>
+            <h2 class="font-bold text-sm text-white">รายการเหตุการณ์ด่วน (Live Feed)</h2>
+          </div>
+          <span id="alertCounter" class="bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-bold px-2.5 py-0.5 rounded-full">0 เหตุการณ์</span>
+        </div>
+
+        <div id="alertsContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[650px]">
+          <div id="emptyAlertState" class="text-center text-slate-500 py-12 text-xs">
+            <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
+            ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: MAP & DETAILS -->
+    <div class="lg:col-span-2 space-y-4 flex flex-col">
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex-1 flex flex-col shadow-md">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-bold text-sm text-white flex items-center space-x-2">
+            <i class="fa-solid fa-map-location-dot text-sky-400"></i>
+            <span>แผนที่พิกัดเหตุการณ์ Real-time</span>
+          </h2>
+          <span class="text-xs text-slate-400">ตำแหน่ง GPS สดอัปเดตต่อเนื่อง</span>
+        </div>
+
+        <div id="adminMap" class="w-full h-[550px] rounded-xl overflow-hidden border border-slate-700"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let adminMap;
+    let markers = {};
+    const channel = new BroadcastChannel('careme_kku_channel');
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB4dGFfr6Uo-xbULZ271qpu9a0SyiHM3AE",
+      authDomain: "caremekku.firebaseapp.com",
+      projectId: "caremekku",
+      storageBucket: "caremekku.firebasestorage.app",
+      messagingSenderId: "107038256100",
+      appId: "1:107038256100:web:5c4f890144648abd17b5f1",
+      measurementId: "G-J3N1RRGG2H",
+      databaseURL: "https://caremekku-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const caremeDb = firebase.database();
+
+    function initAdminMap() {
+      adminMap = L.map('adminMap').setView([16.4746, 102.8234], 15);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19, attribution: '&copy; Esri'
+      }).addTo(adminMap);
+    }
+
+    function loadDataFromStorage() {
+      caremeDb.ref('sos').once('value', (sosSnapshot) => {
+        caremeDb.ref('reports').once('value', (reportSnapshot) => {
+          const sosVal = sosSnapshot.val() || {};
+          const reportVal = reportSnapshot.val() || {};
+
+          const sosList = Object.values(sosVal);
+          const reportList = Object.values(reportVal);
+
+          document.getElementById('alertsContainer').innerHTML = '';
+          
+          if (sosList.length === 0 && reportList.length === 0) {
+            document.getElementById('alertsContainer').innerHTML = `
+              <div id="emptyAlertState" class="text-center text-slate-500 py-12 text-xs">
+                <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
+                ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
+              </div>`;
+            document.getElementById('alertCounter').innerText = '0 เหตุการณ์';
+            return;
+          }
+
+          const total = sosList.length + reportList.length;
+          document.getElementById('alertCounter').innerText = total + ' เหตุการณ์';
+
+          sosList.forEach(data => addAlertCard(data, 'SOS'));
+          reportList.forEach(data => addAlertCard(data, 'REPORT'));
+        });
+      });
+    }
+
+    function initFirebaseRealtimeListeners() {
+      caremeDb.ref('sos').on('child_added', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          addAlertCard(data, 'SOS');
+          if (data.lat && data.lng) {
+            addMapMarker(data.id, data.lat, data.lng, data.title, 'SOS');
+          }
+        }
+      });
+
+      caremeDb.ref('sos').on('child_changed', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          if (data.lat && data.lng) {
+            addMapMarker(data.id, data.lat, data.lng, data.title, 'SOS');
+          }
+        }
+      });
+
+      caremeDb.ref('reports').on('child_added', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          addAlertCard(data, 'REPORT');
+          if (data.lat && data.lng) {
+            addMapMarker(data.id, data.lat, data.lng, data.title, 'REPORT');
+          }
+        }
+      });
+    }
+
+    function addAlertCard(data, type) {
+      const container = document.getElementById('alertsContainer');
+      const emptyState = document.getElementById('emptyAlertState');
+      if (emptyState) emptyState.remove();
+
+      let cardId = `alert-${data.id}`;
+      if (document.getElementById(cardId)) return;
+
+      const div = document.createElement('div');
+      div.id = cardId;
+      div.className = type === 'SOS' 
+        ? "bg-red-950/40 border border-red-500/50 rounded-xl p-3 space-y-2 shadow animate-pulse" 
+        : "bg-slate-700/50 border border-slate-600 rounded-xl p-3 space-y-2 shadow";
+
+      let imgHtml = '';
+      if (data.image) {
+        imgHtml = `<div class="mt-2"><p class="text-[10px] text-slate-400 mb-1">ภาพถ่ายแนบจากผู้แจ้งเหตุ:</p><img src="${data.image}" class="max-h-40 rounded-lg border border-slate-600 object-cover w-full"></div>`;
+      }
+
+      div.innerHTML = `
+        <div class="flex justify-between items-start">
+          <span class="${type === 'SOS' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'} text-[10px] font-bold px-2 py-0.5 rounded-md">
+            ${type === 'SOS' ? '🚨 SOS ฉุกเฉิน' : '📌 แจ้งเหตุ'}
+          </span>
+          <span class="text-[10px] text-slate-400">${data.time || 'เมื่อครู่'}</span>
+        </div>
+        <h3 class="font-bold text-xs text-white">${data.title}</h3>
+        <p class="text-[11px] text-slate-300"><i class="fa-solid fa-user text-slate-400 mr-1"></i> ${data.user || 'นักศึกษา มข.'}</p>
+        ${data.location ? `<p class="text-[11px] text-slate-300"><i class="fa-solid fa-location-dot text-slate-400 mr-1"></i> ${data.location}</p>` : ''}
+        ${data.detail ? `<p class="text-[11px] text-slate-400 bg-slate-800/80 p-2 rounded-lg mt-1">${data.detail}</p>` : ''}
+        ${imgHtml}
+        <button onclick="focusMap(${data.lat}, ${data.lng}, '${data.title}')" class="mt-2 w-full bg-slate-800 hover:bg-slate-900 border border-slate-600 text-slate-200 text-[11px] py-1.5 rounded-lg font-bold transition flex items-center justify-center space-x-1">
+          <i class="fa-solid fa-crosshairs text-sky-400"></i>
+          <span>ปักหมุดดูตำแหน่งในแผนที่</span>
+        </button>
+      `;
+
+      container.prepend(div);
+      if (data.lat && data.lng) {
+        addMapMarker(data.id, data.lat, data.lng, data.title, type);
+      }
+    }
+
+    function addMapMarker(id, lat, lng, title, type) {
+      if (markers[id]) {
+        markers[id].setLatLng([lat, lng]);
+        return;
+      }
+
+      const iconHtml = type === 'SOS' ? '🚨' : '📌';
+      const customIcon = L.divIcon({
+        html: `<div class="bg-white border-2 border-slate-900 rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-lg">${iconHtml}</div>`,
+        className: 'custom-admin-icon',
+        iconSize: [32, 32]
+      });
+
+      const m = L.marker([lat, lng], { icon: customIcon }).addTo(adminMap);
+      m.bindPopup(`<b>${title}</b><br>ประเภท: ${type}`);
+      markers[id] = m;
+    }
+
+    function focusMap(lat, lng, title) {
+      if (adminMap && lat && lng) {
+        adminMap.setView([lat, lng], 17);
+      }
+    }
+
+    function clearAdminLogs() {
+      if (confirm("คุณต้องการล้างประวัติการแจ้งเตือนทั้งหมดในระบบใช่หรือไม่?")) {
+        caremeDb.ref('sos').remove();
+        caremeDb.ref('reports').remove();
+        localStorage.removeItem('careme_sos_data');
+        localStorage.removeItem('careme_report_data');
+        Object.values(markers).forEach(m => adminMap.removeLayer(m));
+        markers = {};
+        loadDataFromStorage();
+      }
+    }
+
+    // รับสัญญาณ Real-time จาก BroadcastChannel
+    channel.onmessage = (event) => {
+      const { type, payload } = event.data;
+      if (type === 'TRIGGER_SOS' || type === 'START_SAFEWALK') {
+        addAlertCard(payload, 'SOS');
+      } else if (type === 'SUBMIT_REPORT') {
+        addAlertCard(payload, 'REPORT');
+      } else if (type === 'GPS_UPDATE') {
+        if (markers[payload.id]) {
+          markers[payload.id].setLatLng([payload.lat, payload.lng]);
+        }
+      }
+    };
+
+    // ดักจับเมื่อมีการบันทึก localStorage ใหม่ในเครื่อง
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'careme_sos_data' || e.key === 'careme_report_data') {
+        loadDataFromStorage();
+      }
+    });
+
+    window.onload = () => {
+      initAdminMap();
+      loadDataFromStorage();
+      initFirebaseRealtimeListeners();
+    };
+  </script>
+</body>
+</html>
