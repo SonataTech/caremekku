@@ -9,6 +9,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-database-compat.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -93,6 +95,19 @@
     let markers = {};
     const channel = new BroadcastChannel('careme_kku_channel');
 
+    const firebaseConfig = {
+      apiKey: "AIzaSyB4dGFfr6Uo-xbULZ271qpu9a0SyiHM3AE",
+      authDomain: "caremekku.firebaseapp.com",
+      projectId: "caremekku",
+      storageBucket: "caremekku.firebasestorage.app",
+      messagingSenderId: "107038256100",
+      appId: "1:107038256100:web:5c4f890144648abd17b5f1",
+      measurementId: "G-J3N1RRGG2H",
+      databaseURL: "https://caremekku-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const caremeDb = firebase.database();
+
     function initAdminMap() {
       adminMap = L.map('adminMap').setView([16.4746, 102.8234], 15);
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
@@ -101,26 +116,64 @@
     }
 
     function loadDataFromStorage() {
-      const sosList = JSON.parse(localStorage.getItem('careme_sos_data') || '[]');
-      const reportList = JSON.parse(localStorage.getItem('careme_report_data') || '[]');
+      caremeDb.ref('sos').once('value', (sosSnapshot) => {
+        caremeDb.ref('reports').once('value', (reportSnapshot) => {
+          const sosVal = sosSnapshot.val() || {};
+          const reportVal = reportSnapshot.val() || {};
 
-      document.getElementById('alertsContainer').innerHTML = '';
-      
-      if (sosList.length === 0 && reportList.length === 0) {
-        document.getElementById('alertsContainer').innerHTML = `
-          <div id="emptyAlertState" class="text-center text-slate-500 py-12 text-xs">
-            <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
-            ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
-          </div>`;
-        document.getElementById('alertCounter').innerText = '0 เหตุการณ์';
-        return;
-      }
+          const sosList = Object.values(sosVal);
+          const reportList = Object.values(reportVal);
 
-      const total = sosList.length + reportList.length;
-      document.getElementById('alertCounter').innerText = total + ' เหตุการณ์';
+          document.getElementById('alertsContainer').innerHTML = '';
+          
+          if (sosList.length === 0 && reportList.length === 0) {
+            document.getElementById('alertsContainer').innerHTML = `
+              <div id="emptyAlertState" class="text-center text-slate-500 py-12 text-xs">
+                <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
+                ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
+              </div>`;
+            document.getElementById('alertCounter').innerText = '0 เหตุการณ์';
+            return;
+          }
 
-      sosList.forEach(data => addAlertCard(data, 'SOS'));
-      reportList.forEach(data => addAlertCard(data, 'REPORT'));
+          const total = sosList.length + reportList.length;
+          document.getElementById('alertCounter').innerText = total + ' เหตุการณ์';
+
+          sosList.forEach(data => addAlertCard(data, 'SOS'));
+          reportList.forEach(data => addAlertCard(data, 'REPORT'));
+        });
+      });
+    }
+
+    function initFirebaseRealtimeListeners() {
+      caremeDb.ref('sos').on('child_added', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          addAlertCard(data, 'SOS');
+          if (data.lat && data.lng) {
+            addMapMarker(data.id, data.lat, data.lng, data.title, 'SOS');
+          }
+        }
+      });
+
+      caremeDb.ref('sos').on('child_changed', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          if (data.lat && data.lng) {
+            addMapMarker(data.id, data.lat, data.lng, data.title, 'SOS');
+          }
+        }
+      });
+
+      caremeDb.ref('reports').on('child_added', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          addAlertCard(data, 'REPORT');
+          if (data.lat && data.lng) {
+            addMapMarker(data.id, data.lat, data.lng, data.title, 'REPORT');
+          }
+        }
+      });
     }
 
     function addAlertCard(data, type) {
@@ -191,7 +244,9 @@
     }
 
     function clearAdminLogs() {
-      if (confirm("คุณต้องการล้างประวัติการแจ้งเตือนทั้งหมดในเครื่องใช่หรือไม่?")) {
+      if (confirm("คุณต้องการล้างประวัติการแจ้งเตือนทั้งหมดในระบบใช่หรือไม่?")) {
+        caremeDb.ref('sos').remove();
+        caremeDb.ref('reports').remove();
         localStorage.removeItem('careme_sos_data');
         localStorage.removeItem('careme_report_data');
         Object.values(markers).forEach(m => adminMap.removeLayer(m));
@@ -224,6 +279,7 @@
     window.onload = () => {
       initAdminMap();
       loadDataFromStorage();
+      initFirebaseRealtimeListeners();
     };
   </script>
 </body>

@@ -394,8 +394,22 @@
       </button>
     </nav>
   </div>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-database-compat.js"></script>
 
   <script>
+     const firebaseConfig = {
+    apiKey: "AIzaSyB4dGFfr6Uo-xbULZ271qpu9a0SyiHM3AE",
+    authDomain: "caremekku.firebaseapp.com",
+    projectId: "caremekku",
+    storageBucket: "caremekku.firebasestorage.app",
+    messagingSenderId: "107038256100",
+    appId: "1:107038256100:web:5c4f890144648abd17b5f1",
+    measurementId: "G-J3N1RRGG2H",
+    databaseURL: "https://caremekku-default-rtdb.asia-southeast1.firebasedatabase.app"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const caremeDb = firebase.database();
     let isOnline = true;
     let currentLat = 16.4746;
     let currentLng = 102.8234;
@@ -572,6 +586,15 @@
     function dispatchEvent(type, payload) {
       if (isOnline) {
         channel.postMessage({ type: type, payload: payload });
+        if (type === 'TRIGGER_SOS' || type === 'START_SAFEWALK') {
+          caremeDb.ref('sos/' + payload.id).set(payload);
+        } else if (type === 'GPS_UPDATE') {
+          caremeDb.ref('sos/' + payload.id).update({ lat: payload.lat, lng: payload.lng, time: payload.time });
+        } else if (type === 'SUBMIT_REPORT') {
+          caremeDb.ref('reports/' + payload.id).set(payload);
+        } else if (type === 'STOP_TRACKING' || type === 'END_SAFEWALK') {
+          caremeDb.ref('sos/' + payload.id).update({ status: 'ended' });
+        }
       } else {
         offlineQueue.push({ type: type, payload: payload });
         document.getElementById('queueCount').innerText = offlineQueue.length;
@@ -581,7 +604,18 @@
     function syncOfflineQueue() {
       if (offlineQueue.length > 0) {
         alert("🌐 อินเทอร์เน็ตกลับมาเชื่อมต่อแล้ว! ซิงค์ข้อมูล " + offlineQueue.length + " รายการไปยังศูนย์ รปภ.");
-        offlineQueue.forEach(item => channel.postMessage({ type: item.type, payload: item.payload }));
+        offlineQueue.forEach(item => {
+          channel.postMessage({ type: item.type, payload: item.payload });
+          if (item.type === 'TRIGGER_SOS' || item.type === 'START_SAFEWALK') {
+            caremeDb.ref('sos/' + item.payload.id).set(item.payload);
+          } else if (item.type === 'GPS_UPDATE') {
+            caremeDb.ref('sos/' + item.payload.id).update({ lat: item.payload.lat, lng: item.payload.lng, time: item.payload.time });
+          } else if (item.type === 'SUBMIT_REPORT') {
+            caremeDb.ref('reports/' + item.payload.id).set(item.payload);
+          } else if (item.type === 'STOP_TRACKING' || item.type === 'END_SAFEWALK') {
+            caremeDb.ref('sos/' + item.payload.id).update({ status: 'ended' });
+          }
+        });
         offlineQueue = [];
         document.getElementById('queueCount').innerText = 0;
       }
