@@ -788,30 +788,28 @@
         .catch((err) => console.log('Service Worker Failed!', err));
     });
   }
-function autoUpdateOnlineStatus() {
+function updateNetworkStatus() {
+  const isOnline = navigator.onLine;
   const dot = document.getElementById('netDot');
   const text = document.getElementById('netStatusText');
   const badge = document.getElementById('networkBadge');
-  const banner = document.getElementById('offlineQueueBanner');
 
-  if (isOnline) {
-    if (dot) dot.textContent = '🟢';
-    if (text) text.textContent = 'ออนไลน์';
-    if (badge) badge.className = "text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1";
-    if (banner) banner.classList.add('hidden');
-    processOfflineQueue(); 
-  } else {
-    if (dot) dot.textContent = '🔴';
-    if (text) text.textContent = 'ออฟไลน์';
-    if (badge) badge.className = "text-[10px] bg-red-500/20 text-red-300 border border-red-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1";
-    if (banner && offlineQueue.length > 0) banner.classList.remove('hidden');
+  if (dot && text && badge) {
+    if (isOnline) {
+      dot.textContent = '🟢';
+      text.textContent = 'ออนไลน์';
+      badge.className = "text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1";
+    } else {
+      dot.textContent = '🔴';
+      text.textContent = 'ออฟไลน์';
+      badge.className = "text-[10px] bg-red-500/20 text-red-300 border border-red-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1";
+    }
   }
 }
-
 window.addEventListener('online', updateNetworkStatus);
 window.addEventListener('offline', updateNetworkStatus);
-document.addEventListener('DOMContentLoaded', updateNetworkStatus);
 window.addEventListener('load', updateNetworkStatus);
+document.addEventListener('DOMContentLoaded', updateNetworkStatus);
 </script>
 </body>
 </html>
