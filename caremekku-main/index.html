@@ -44,6 +44,10 @@
     #fullMap { height: 380px; width: 100%; border-radius: 1rem; }
     #safeWalkMap { height: 320px; width: 100%; border-radius: 1rem; }
     #groupLiveMap { height: 280px; width: 100%; border-radius: 1rem; }
+    #fullMap, #safeWalkMap, #miniMap, #groupLiveMap { position: relative; z-index: 10 !important; }
+    .app-toast { z-index: 99999 !important; }
+    .app-modal { z-index: 10000 !important; }
+    .app-submodal { z-index: 11000 !important; }
   </style>
 </head>
 <body class="flex justify-center items-center min-h-screen bg-slate-200 p-0 sm:p-4">
@@ -51,7 +55,7 @@
   <!-- ========================================== -->
   <!-- 1. LOGIN OVERLAY (USER & ADMIN AUTH)       -->
   <!-- ========================================== -->
-  <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-900/95 flex justify-center items-center p-4 hidden">
+  <div id="loginOverlay" class="fixed inset-0 z-[10000] app-modal bg-slate-900/95 flex justify-center items-center p-4 hidden">
     <div class="w-full max-w-md bg-white rounded-[32px] shadow-2xl p-6 flex flex-col space-y-5 border-4 border-slate-700">
       <div class="text-center space-y-1">
         <div class="w-14 h-14 bg-kkuNavy text-white rounded-2xl mx-auto flex items-center justify-center shadow-lg">
@@ -120,7 +124,7 @@
   <!-- ========================================== -->
   <!-- 2. NOTIFICATION PANEL MODAL                -->
   <!-- ========================================== -->
-  <div id="notificationModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4">
+  <div id="notificationModal" class="hidden fixed inset-0 z-[10000] app-modal bg-slate-900/70 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4">
     <div class="w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
       
       <!-- NOTIF HEADER -->
@@ -175,7 +179,7 @@
   </div>
 
   <!-- TOAST NOTIFICATION POPUP -->
-  <div id="notificationToast" class="fixed top-4 inset-x-4 max-w-sm mx-auto z-50 pointer-events-auto transform -translate-y-32 opacity-0 transition-all duration-300 ease-out hidden">
+  <div id="notificationToast" class="fixed top-4 inset-x-4 max-w-sm mx-auto z-[99999] app-toast pointer-events-auto transform -translate-y-32 opacity-0 transition-all duration-300 ease-out hidden">
     <div id="toastInnerContent" class="bg-white border-2 border-slate-800 rounded-2xl p-3.5 shadow-2xl flex items-start space-x-3 cursor-pointer" onclick="handleToastClick()">
       <!-- Toast content inserted by JS -->
     </div>
@@ -184,7 +188,7 @@
   <!-- ========================================== -->
   <!-- 3. GROUP / FAMILY MANAGER MODAL            -->
   <!-- ========================================== -->
-  <div id="groupManagerModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4">
+  <div id="groupManagerModal" class="hidden fixed inset-0 z-[10000] app-modal bg-slate-900/70 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4">
     <div class="w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
       
       <!-- GROUP HEADER -->
@@ -387,7 +391,7 @@
   </div>
 
   <!-- MODAL: CREATE GROUP -->
-  <div id="modalCreateGroup" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4">
+  <div id="modalCreateGroup" class="hidden fixed inset-0 z-[11000] app-submodal bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4">
     <div class="bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl border border-slate-200">
       <div class="flex justify-between items-center border-b pb-2">
         <h3 class="font-bold text-sm text-kkuNavy"><i class="fa-solid fa-users-gear text-teal-600 mr-1.5"></i>สร้างกลุ่มความปลอดภัยใหม่</h3>
@@ -415,7 +419,7 @@
   </div>
 
   <!-- MODAL: JOIN GROUP -->
-  <div id="modalJoinGroup" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4">
+  <div id="modalJoinGroup" class="hidden fixed inset-0 z-[11000] app-submodal bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4">
     <div class="bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl border border-slate-200">
       <div class="flex justify-between items-center border-b pb-2">
         <h3 class="font-bold text-sm text-kkuNavy"><i class="fa-solid fa-right-to-bracket text-kkuBlue mr-1.5"></i>เข้าร่วมกลุ่มด้วยรหัสเชิญ</h3>
@@ -435,7 +439,7 @@
   </div>
 
   <!-- MODAL: INVITE GROUP (INVITE CODE & QR CODE) -->
-  <div id="modalInviteGroup" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4">
+  <div id="modalInviteGroup" class="hidden fixed inset-0 z-[11000] app-submodal bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4">
     <div class="bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl border border-slate-200 text-center">
       <div class="flex justify-between items-center border-b pb-2 text-left">
         <h3 class="font-bold text-sm text-kkuNavy"><i class="fa-solid fa-qrcode text-amber-500 mr-1.5"></i>เชิญสมาชิกเข้ากลุ่ม</h3>
@@ -465,7 +469,7 @@
   </div>
 
   <!-- MODAL: EDIT SAVED PLACE -->
-  <div id="modalEditPlace" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4">
+  <div id="modalEditPlace" class="hidden fixed inset-0 z-[11000] app-submodal bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4">
     <div class="bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl border border-slate-200">
       <div class="flex justify-between items-center border-b pb-2">
         <h3 class="font-bold text-sm text-kkuNavy"><i class="fa-solid fa-pen text-amber-500 mr-1.5"></i>แก้ไขชื่อสถานที่โปรด</h3>
