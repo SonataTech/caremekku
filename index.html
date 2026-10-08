@@ -2143,6 +2143,7 @@
         speed: currentSpeedKmh,
         routeStatus: "ON_ROUTE",
         status: "walking",
+        routeGeometry: isSafeWalk ? currentRoadRouteGeometry : null,
         startedAt: timeNow,
         lastUpdatedAt: timeNow,
         time: timeNow
@@ -2281,7 +2282,8 @@
         destinationLatitude: isSafeWalk ? destinationLat : null,
         destinationLongitude: isSafeWalk ? destinationLng : null,
         destinationLat: isSafeWalk ? destinationLat : null,
-        destinationLng: isSafeWalk ? destinationLng : null
+        destinationLng: isSafeWalk ? destinationLng : null,
+        routeGeometry: isSafeWalk ? currentRoadRouteGeometry : null
       };
 
       caremeDb.ref('safeWalkSessions/' + activeSessionId).update(livePing);

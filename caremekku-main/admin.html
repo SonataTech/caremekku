@@ -378,6 +378,26 @@
     }
 
     // ==========================================
+    // ROUTING PROVIDER FOR ROAD GEOMETRY
+    // ==========================================
+    class AdminOSRMRoutingProvider {
+      constructor(baseUrl = 'https://router.project-osrm.org') {
+        this.baseUrl = baseUrl;
+      }
+      async getRoute(startCoords, destCoords) {
+        const url = `${this.baseUrl}/route/v1/walking/${startCoords[1]},${startCoords[0]};${destCoords[1]},${destCoords[0]}?overview=full&geometries=geojson`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data.routes || data.routes.length === 0) throw new Error("No route found");
+        const r = data.routes[0];
+        return r.geometry.coordinates.map(c => [c[1], c[0]]); // Leaflet [lat, lng]
+      }
+    }
+    const adminRoutingProvider = new AdminOSRMRoutingProvider();
+    const adminRouteGeometryCache = {};
+
+    // ==========================================
     // MAP INITIALIZATION (RULE 21)
     // ==========================================
     function initAdminMap() {
@@ -978,6 +998,43 @@
     // ==========================================
     // MAP MARKERS & ROUTE MONITORING (RULE 21)
     // ==========================================
+    async function renderAdminRoadRoute(id, userLat, userLng, destLat, destLng, passedGeometry, isDeviated, isCompleted) {
+      if (!adminMap) return;
+      const polyColor = isDeviated ? '#EF4444' : (isCompleted ? '#10B981' : '#3B82F6');
+      const dash = isDeviated ? '6, 6' : null;
+
+      let finalCoords = passedGeometry;
+
+      // If no geometry passed, check cache or fetch real OSRM road geometry
+      if (!finalCoords || finalCoords.length < 2) {
+        const cacheKey = `${id}_${Number(destLat).toFixed(4)}_${Number(destLng).toFixed(4)}`;
+        if (adminRouteGeometryCache[cacheKey]) {
+          finalCoords = adminRouteGeometryCache[cacheKey];
+        } else {
+          try {
+            finalCoords = await adminRoutingProvider.getRoute([userLat, userLng], [destLat, destLng]);
+            adminRouteGeometryCache[cacheKey] = finalCoords;
+          } catch(e) {
+            finalCoords = [[userLat, userLng], [destLat, destLng]];
+          }
+        }
+      }
+
+      if (!finalCoords || finalCoords.length === 0) return;
+
+      if (safewalkRoutes[id]) {
+        safewalkRoutes[id].setLatLngs(finalCoords);
+        safewalkRoutes[id].setStyle({ color: polyColor, dashArray: dash });
+      } else {
+        safewalkRoutes[id] = L.polyline(finalCoords, {
+          color: polyColor,
+          weight: 5,
+          opacity: 0.85,
+          dashArray: dash
+        }).addTo(adminMap);
+      }
+    }
+
     function updateSafeWalkMap(data) {
       if (!adminMap) initAdminMap();
       const id = data.id || data.sessionId;
@@ -1026,23 +1083,9 @@
         }
       }
 
-      // 3. Route Polyline
+      // 3. True Road Route Polyline (OSRM Road Routing)
       if (userLat && userLng && destLat && destLng) {
-        const polyCoords = [[userLat, userLng], [destLat, destLng]];
-        const polyColor = isDeviated ? '#EF4444' : (isCompleted ? '#10B981' : '#3B82F6');
-        const dash = isDeviated ? '6, 6' : null;
-
-        if (safewalkRoutes[id]) {
-          safewalkRoutes[id].setLatLngs(polyCoords);
-          safewalkRoutes[id].setStyle({ color: polyColor, dashArray: dash });
-        } else {
-          safewalkRoutes[id] = L.polyline(polyCoords, {
-            color: polyColor,
-            weight: 4,
-            opacity: 0.85,
-            dashArray: dash
-          }).addTo(adminMap);
-        }
+        renderAdminRoadRoute(id, userLat, userLng, destLat, destLng, data.routeGeometry, isDeviated, isCompleted);
       }
     }
 
@@ -1073,7 +1116,9 @@
 
     function focusSafeWalkOnMap(id, userLat, userLng, destLat, destLng, destName) {
       if (!adminMap) initAdminMap();
-      if (userLat && userLng && destLat && destLng) {
+      if (safewalkRoutes[id]) {
+        adminMap.fitBounds(safewalkRoutes[id].getBounds(), { padding: [60, 60], maxZoom: 17 });
+      } else if (userLat && userLng && destLat && destLng) {
         const bounds = L.latLngBounds([[userLat, userLng], [destLat, destLng]]);
         adminMap.fitBounds(bounds, { padding: [60, 60], maxZoom: 17 });
       } else if (userLat && userLng) {
