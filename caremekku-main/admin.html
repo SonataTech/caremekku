@@ -100,7 +100,18 @@
             <span id="alertCounter" class="bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-bold px-2.5 py-0.5 rounded-full">0 เหตุการณ์</span>
           </div>
 
-          <div id="alertsContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[650px]">
+          <!-- Category Filter Bar in Admin Live Feed -->
+          <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pb-2 mb-2 text-[10px]">
+            <button onclick="filterAdminFeed('ALL')" id="adminFilterAll" class="px-2.5 py-1 rounded-lg font-bold bg-sky-600 text-white whitespace-nowrap">ทั้งหมด</button>
+            <button onclick="filterAdminFeed('SOS')" id="adminFilterSOS" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">🚨 SOS</button>
+            <button onclick="filterAdminFeed('SafeWalk')" id="adminFilterSafeWalk" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">🚶 SafeWalk</button>
+            <button onclick="filterAdminFeed('Danger Area')" id="adminFilterDanger" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">⚠️ Danger Area</button>
+            <button onclick="filterAdminFeed('Report')" id="adminFilterReport" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">📝 Report</button>
+            <button onclick="filterAdminFeed('GPS')" id="adminFilterGPS" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">📡 GPS</button>
+            <button onclick="filterAdminFeed('Group / Family')" id="adminFilterGroup" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">👥 Group / Family</button>
+          </div>
+
+          <div id="alertsContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[600px]">
             <div id="emptyAlertState" class="text-center text-slate-500 py-12 text-xs">
               <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
               ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
@@ -130,6 +141,8 @@
   <script>
     let adminMap;
     let markers = {};
+    let destMarkers = {};
+    let safewalkRoutes = {};
     const channel = new BroadcastChannel('careme_kku_channel');
 
     const firebaseConfig = {
@@ -150,7 +163,6 @@
       if (!authDataStr) return null;
       try {
         const auth = JSON.parse(authDataStr);
-        // Sync both storages
         sessionStorage.setItem('careme_auth', JSON.stringify(auth));
         localStorage.setItem('careme_auth', JSON.stringify(auth));
         return auth;
@@ -159,7 +171,6 @@
       }
     }
 
-    // Admin Access Protection & Authorization Check
     function verifyAdminAccess() {
       const auth = getCaremeAuth();
       if (!auth || auth.role !== 'admin') {
@@ -203,7 +214,6 @@
         return;
       }
 
-      // Firebase check
       caremeDb.ref('admins/' + user).once('value', (snapshot) => {
         const data = snapshot.val();
         if (data && (data.passwordHash === pass || user === 'admin')) {
@@ -241,6 +251,114 @@
       }).addTo(adminMap);
     }
 
+    let currentAdminFeedFilter = 'ALL';
+
+    function getEventCategory(data, fallbackCategory = 'SOS') {
+      if (!data) return fallbackCategory;
+      
+      const validCategories = ["SafeWalk", "SOS", "Group / Family", "Danger Area", "GPS", "Report"];
+      if (data.category && validCategories.includes(data.category)) {
+        return data.category;
+      }
+      
+      const t = (data.type || '').toUpperCase();
+      if (t.includes('SAFEWALK') || t.includes('WALK') || t.includes('ROUTE_DEVIATION') || t.includes('BACK_ON_TRACK')) {
+        return 'SafeWalk';
+      }
+      if (t === 'SOS' || t.includes('SOS') || t.includes('TRIGGER_SOS')) {
+        return 'SOS';
+      }
+      if (t.includes('REPORT') || t.includes('SUBMIT_REPORT')) {
+        return 'Report';
+      }
+      if (t.includes('DANGER') || t.includes('ZONE')) {
+        return 'Danger Area';
+      }
+      if (t.includes('GPS') || t.includes('LOCATION')) {
+        return 'GPS';
+      }
+      if (t.includes('GROUP') || t.includes('FAMILY') || t.includes('NEARBY')) {
+        return 'Group / Family';
+      }
+      
+      const titleText = (data.title || '') + ' ' + (data.detail || '') + ' ' + (data.message || '');
+      if (titleText.includes('Safe Walk') || titleText.includes('SafeWalk') || titleText.includes('กำลังเดินทางไป')) {
+        return 'SafeWalk';
+      }
+      if (titleText.includes('SOS') || titleText.includes('ฉุกเฉิน') || titleText.includes('ขอความช่วยเหลือ')) {
+        return 'SOS';
+      }
+      if (titleText.includes('รายงาน') || titleText.includes('แจ้งเหตุ')) {
+        return 'Report';
+      }
+      if (titleText.includes('พื้นที่เสี่ยง') || titleText.includes('พื้นที่เฝ้าระวัง')) {
+        return 'Danger Area';
+      }
+      if (titleText.includes('GPS')) {
+        return 'GPS';
+      }
+
+      return validCategories.includes(fallbackCategory) ? fallbackCategory : 'SOS';
+    }
+
+    function filterAdminFeed(filter) {
+      currentAdminFeedFilter = filter;
+      const filters = ['ALL', 'SOS', 'SafeWalk', 'Danger Area', 'Report', 'GPS', 'Group / Family'];
+      const btnMap = {
+        'ALL': 'adminFilterAll',
+        'SOS': 'adminFilterSOS',
+        'SafeWalk': 'adminFilterSafeWalk',
+        'Danger Area': 'adminFilterDanger',
+        'Report': 'adminFilterReport',
+        'GPS': 'adminFilterGPS',
+        'Group / Family': 'adminFilterGroup'
+      };
+
+      filters.forEach(f => {
+        const btn = document.getElementById(btnMap[f]);
+        if (btn) {
+          if (f === filter) {
+            btn.className = "px-2.5 py-1 rounded-lg font-bold bg-sky-600 text-white whitespace-nowrap shadow-sm";
+          } else {
+            btn.className = "px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap";
+          }
+        }
+      });
+
+      const cards = document.querySelectorAll('#alertsContainer > [data-category]');
+      let visibleCount = 0;
+      cards.forEach(card => {
+        const cardCat = card.getAttribute('data-category');
+        if (filter === 'ALL' || cardCat === filter) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      const emptyEl = document.getElementById('emptyAlertState');
+      if (emptyEl) {
+        if (cards.length > 0 && visibleCount === 0) {
+          emptyEl.classList.remove('hidden');
+          emptyEl.innerHTML = `<i class="fa-solid fa-bell-slash text-2xl mb-1 text-slate-600 block"></i>ไม่มีเหตุการณ์ในหมวดหมู่นี้`;
+        } else if (cards.length === 0) {
+          emptyEl.classList.remove('hidden');
+          emptyEl.innerHTML = `<i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้`;
+        } else {
+          emptyEl.classList.add('hidden');
+        }
+      }
+    }
+
+    function updateTotalAlertCounter() {
+      const cards = document.querySelectorAll('#alertsContainer > [data-category]');
+      const counterEl = document.getElementById('alertCounter');
+      if (counterEl) {
+        counterEl.innerText = `${cards.length} เหตุการณ์`;
+      }
+    }
+
     function loadDataFromStorage() {
       if (!verifyAdminAccess()) return;
 
@@ -264,11 +382,25 @@
             return;
           }
 
-          const total = sosList.length + reportList.length;
-          document.getElementById('alertCounter').innerText = total + ' เหตุการณ์';
+          sosList.forEach(data => {
+            const cat = getEventCategory(data, data.type === 'SAFEWALK' ? 'SafeWalk' : 'SOS');
+            addAlertCard(data, cat);
+            if (cat === 'SafeWalk') {
+              updateSafeWalkMap(data);
+            } else if (data.lat && data.lng) {
+              addMapMarker(data.id, data.lat, data.lng, data.title || cat, cat);
+            }
+          });
+          reportList.forEach(data => {
+            const cat = getEventCategory(data, 'Report');
+            addAlertCard(data, cat);
+            if (data.lat && data.lng) {
+              addMapMarker(data.id, data.lat, data.lng, data.title || 'รายงานเหตุ', cat);
+            }
+          });
 
-          sosList.forEach(data => addAlertCard(data, 'SOS'));
-          reportList.forEach(data => addAlertCard(data, 'REPORT'));
+          updateTotalAlertCounter();
+          filterAdminFeed(currentAdminFeedFilter);
         });
       });
     }
@@ -279,9 +411,12 @@
       caremeDb.ref('sos').on('child_added', (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          addAlertCard(data, 'SOS');
-          if (data.lat && data.lng) {
-            addMapMarker(data.id, data.lat, data.lng, data.title, 'SOS');
+          const cat = getEventCategory(data, data.type === 'SAFEWALK' ? 'SafeWalk' : 'SOS');
+          addAlertCard(data, cat);
+          if (cat === 'SafeWalk') {
+            updateSafeWalkMap(data);
+          } else if (data.lat && data.lng) {
+            addMapMarker(data.id, data.lat, data.lng, data.title || cat, cat);
           }
         }
       });
@@ -289,8 +424,12 @@
       caremeDb.ref('sos').on('child_changed', (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          if (data.lat && data.lng) {
-            addMapMarker(data.id, data.lat, data.lng, data.title, 'SOS');
+          const cat = getEventCategory(data, data.type === 'SAFEWALK' ? 'SafeWalk' : 'SOS');
+          if (cat === 'SafeWalk') {
+            updateSafeWalkCard(data);
+            updateSafeWalkMap(data);
+          } else if (data.lat && data.lng) {
+            addMapMarker(data.id, data.lat, data.lng, data.title || cat, cat);
           }
         }
       });
@@ -298,9 +437,10 @@
       caremeDb.ref('reports').on('child_added', (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          addAlertCard(data, 'Report');
+          const cat = getEventCategory(data, 'Report');
+          addAlertCard(data, cat);
           if (data.lat && data.lng) {
-            addMapMarker(data.id, data.lat, data.lng, data.title || 'รายงานเหตุ', 'Report');
+            addMapMarker(data.id, data.lat, data.lng, data.title || 'รายงานเหตุ', cat);
           }
         }
       });
@@ -308,31 +448,89 @@
       caremeDb.ref('allNotifications').on('child_added', (snapshot) => {
         const notif = snapshot.val();
         if (notif) {
+          const cat = getEventCategory(notif, notif.category || 'SafeWalk');
           addAlertCard({
             id: notif.notificationId,
-            title: notif.title || notif.category,
+            title: notif.title || cat,
             detail: notif.message,
             user: notif.userId,
             lat: notif.latitude,
             lng: notif.longitude,
-            time: notif.time
-          }, notif.category);
+            time: notif.time,
+            type: notif.type,
+            category: cat
+          }, cat);
         }
       });
+    }
+
+    function updateSafeWalkCard(data) {
+      const cardId = `alert-${data.id || data.notificationId}`;
+      const card = document.getElementById(cardId);
+      if (!card) {
+        addAlertCard(data, 'SafeWalk');
+        return;
+      }
+
+      const distRemaining = data.distanceRemaining || data.distRemainingKm || '0.0';
+      const etaText = data.eta || '1 นาที';
+      const speedText = typeof data.speed !== 'undefined' ? Number(data.speed).toFixed(1) : '0.0';
+      const routeStatus = data.routeStatus || (data.status === 'completed' ? 'ถึงปลายทางแล้ว' : 'กำลังเดินทาง');
+      const isDeviated = routeStatus === 'ออกนอกเส้นทาง' || data.status === 'deviated';
+      const isCompleted = routeStatus === 'ถึงปลายทางแล้ว' || data.status === 'completed';
+
+      const distEl = document.getElementById(`sw-dist-${cardId}`);
+      if (distEl) distEl.innerText = `${distRemaining} กม.`;
+
+      const etaEl = document.getElementById(`sw-eta-${cardId}`);
+      if (etaEl) etaEl.innerText = `${etaText}`;
+
+      const speedEl = document.getElementById(`sw-speed-${cardId}`);
+      if (speedEl) speedEl.innerText = `${speedText} km/h`;
+
+      const routeStatusEl = document.getElementById(`sw-routestatus-${cardId}`);
+      if (routeStatusEl) {
+        routeStatusEl.innerText = routeStatus;
+        routeStatusEl.className = isDeviated ? "text-red-400 font-bold" : (isCompleted ? "text-blue-400 font-bold" : "text-emerald-400 font-bold");
+      }
+
+      const badgeEl = document.getElementById(`sw-status-badge-${cardId}`);
+      if (badgeEl) {
+        if (isDeviated) {
+          badgeEl.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse";
+          badgeEl.innerText = "⚠️ ออกนอกเส้นทาง";
+        } else if (isCompleted) {
+          badgeEl.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40";
+          badgeEl.innerText = "🏁 ถึงปลายทางแล้ว";
+        } else {
+          badgeEl.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+          badgeEl.innerText = "🟢 กำลังเดินทาง";
+        }
+      }
+
+      const updatedEl = document.getElementById(`sw-updated-${cardId}`);
+      if (updatedEl) {
+        updatedEl.innerHTML = `<i class="fa-solid fa-rotate mr-1 text-[9px]"></i>อัปเดต ${data.lastUpdatedAt || data.time || 'เมื่อครู่'}`;
+      }
     }
 
     function addAlertCard(data, category) {
       const container = document.getElementById('alertsContainer');
       const emptyState = document.getElementById('emptyAlertState');
-      if (emptyState) emptyState.remove();
+      if (emptyState && !emptyState.classList.contains('hidden')) {
+        emptyState.classList.add('hidden');
+      }
 
-      let cardId = `alert-${data.id || data.notificationId}`;
-      if (document.getElementById(cardId)) return;
+      let cardId = `alert-${data.id || data.notificationId || Math.floor(Math.random() * 1000000)}`;
+      if (document.getElementById(cardId)) {
+        if (category === 'SafeWalk') updateSafeWalkCard(data);
+        return;
+      }
 
-      const validCategories = ["SafeWalk", "SOS", "Group / Family", "Danger Area", "GPS", "Report"];
-      let finalCategory = validCategories.includes(category) ? category : (category === 'REPORT' ? 'Report' : 'SOS');
-
+      const finalCategory = getEventCategory(data, category);
       const isSOS = finalCategory === 'SOS';
+      const isSafeWalk = finalCategory === 'SafeWalk';
+
       let badgeClass = "bg-blue-600 text-white";
       let borderClass = "border-slate-600 bg-slate-700/50";
       let icon = "📌";
@@ -343,7 +541,7 @@
         icon = "🚨";
       } else if (finalCategory === 'SafeWalk') {
         badgeClass = "bg-indigo-600 text-white font-bold";
-        borderClass = "border-indigo-500/50 bg-indigo-950/30";
+        borderClass = "border-indigo-500/50 bg-indigo-950/30 shadow-md shadow-indigo-950/20";
         icon = "🚶";
       } else if (finalCategory === 'Danger Area') {
         badgeClass = "bg-amber-600 text-white font-bold";
@@ -365,44 +563,229 @@
 
       const div = document.createElement('div');
       div.id = cardId;
+      div.setAttribute('data-category', finalCategory);
       div.className = `${borderClass} border rounded-2xl p-3.5 space-y-2 shadow transition hover:border-slate-400`;
 
-      let imgHtml = '';
-      if (data.image) {
-        imgHtml = `<div class="mt-2"><p class="text-[10px] text-slate-400 mb-1">ภาพถ่ายแนบจากผู้แจ้งเหตุ:</p><img src="${data.image}" class="max-h-40 rounded-xl border border-slate-600 object-cover w-full"></div>`;
+      if (currentAdminFeedFilter !== 'ALL' && currentAdminFeedFilter !== finalCategory) {
+        div.classList.add('hidden');
       }
 
-      const eventMessage = data.detail || data.message || data.title || 'ไม่มีรายละเอียดเพิ่มเติม';
+      if (isSafeWalk) {
+        const userDisplay = data.user || data.userId || 'นักศึกษา มข.';
+        const destName = data.destinationName || data.destination || data.title || 'จุดหมายปลายทาง';
+        const startLoc = data.startLocation || 'มหาวิทยาลัยขอนแก่น';
+        const destLat = data.destinationLatitude || data.destinationLat;
+        const destLng = data.destinationLongitude || data.destinationLng;
+        const userLat = data.currentLatitude || data.lat;
+        const userLng = data.currentLongitude || data.lng;
+        const distRemaining = data.distanceRemaining || data.distRemainingKm || '0.0';
+        const etaText = data.eta || '1 นาที';
+        const speedText = typeof data.speed !== 'undefined' ? Number(data.speed).toFixed(1) : '0.0';
+        const routeStatus = data.routeStatus || (data.status === 'completed' ? 'ถึงปลายทางแล้ว' : 'กำลังเดินทาง');
+        const isDeviated = routeStatus === 'ออกนอกเส้นทาง' || data.status === 'deviated';
+        const isCompleted = routeStatus === 'ถึงปลายทางแล้ว' || data.status === 'completed';
 
-      div.innerHTML = `
-        <div class="flex justify-between items-start">
-          <div class="flex items-center space-x-1.5">
-            <span class="${badgeClass} text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide">
-              ${icon} ${finalCategory}
-            </span>
-            ${isSOS ? '<span class="bg-red-500/20 text-red-300 border border-red-500/40 text-[9px] font-bold px-1.5 py-0.5 rounded">CRITICAL</span>' : ''}
+        let statusBadgeClass = "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+        let statusTextColor = "text-emerald-400";
+        if (isDeviated) {
+          statusBadgeClass = "bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse";
+          statusTextColor = "text-red-400";
+        } else if (isCompleted) {
+          statusBadgeClass = "bg-blue-500/20 text-blue-300 border border-blue-500/40";
+          statusTextColor = "text-blue-400";
+        }
+
+        const startedTime = data.startedAt || data.time || 'เมื่อครู่';
+        const lastUpdatedTime = data.lastUpdatedAt || data.time || 'เมื่อครู่';
+
+        div.innerHTML = `
+          <div class="flex justify-between items-start border-b border-indigo-900/50 pb-2 mb-2">
+            <div class="flex items-center space-x-1.5">
+              <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide flex items-center space-x-1">
+                <span>🚶</span><span>SafeWalk</span>
+              </span>
+              <span id="sw-status-badge-${cardId}" class="text-[9px] font-bold px-1.5 py-0.5 rounded ${statusBadgeClass}">
+                ${isDeviated ? '⚠️ ออกนอกเส้นทาง' : (isCompleted ? '🏁 ถึงปลายทางแล้ว' : '🟢 กำลังเดินทาง')}
+              </span>
+            </div>
+            <span class="text-[10px] text-slate-400" id="sw-time-${cardId}"><i class="fa-regular fa-clock mr-1"></i>${startedTime}</span>
           </div>
-          <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${data.time || 'เมื่อครู่'}</span>
-        </div>
-        <p class="text-xs ${isSOS ? 'text-white font-bold' : 'text-slate-200 font-medium'} leading-snug">${eventMessage}</p>
-        <p class="text-[11px] text-slate-400"><i class="fa-solid fa-user text-slate-500 mr-1"></i> ${data.user || 'นักศึกษา มข.'}</p>
-        ${data.location ? `<p class="text-[11px] text-slate-400"><i class="fa-solid fa-location-dot text-slate-500 mr-1"></i> ${data.location}</p>` : ''}
-        ${imgHtml}
-        <div class="grid grid-cols-2 gap-2 pt-2">
-          <button onclick="focusMap(${data.lat || 16.4746}, ${data.lng || 102.8234}, '${finalCategory}')" class="w-full bg-slate-800 hover:bg-slate-900 border border-slate-600 text-slate-200 text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1">
-            <i class="fa-solid fa-crosshairs text-sky-400"></i>
-            <span>ปักหมุด</span>
-          </button>
-          <a href="tel:0817080088" onclick="logAdminCallback('${data.user || 'นักศึกษา'}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
-            <i class="fa-solid fa-phone-volume"></i>
-            <span>โทรกลับ User</span>
-          </a>
-        </div>
-      `;
+
+          <div class="space-y-2 text-xs">
+            <div class="flex items-center justify-between text-slate-300">
+              <span class="font-bold text-white"><i class="fa-solid fa-user text-indigo-400 mr-1.5"></i>ผู้ใช้: <span class="text-indigo-200 font-bold">${userDisplay}</span></span>
+            </div>
+
+            <!-- Destination Card -->
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-indigo-900/60 space-y-1.5">
+              <div class="flex items-start space-x-1.5">
+                <span class="text-indigo-400 text-xs mt-0.5">📍</span>
+                <div class="flex-1">
+                  <p class="text-[10px] text-slate-400 font-medium">เดินทางไป:</p>
+                  <p class="font-bold text-white text-xs" id="sw-dest-${cardId}">${destName}</p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 text-[11px] pt-1.5 border-t border-slate-800">
+                <div>
+                  <p class="text-[10px] text-slate-400">📌 จุดเริ่มต้น:</p>
+                  <p class="text-slate-300 truncate font-medium">${startLoc}</p>
+                </div>
+                <div>
+                  <p class="text-[10px] text-slate-400">📍 พิกัดปลายทาง:</p>
+                  <p class="text-slate-300 font-mono text-[10px]">${destLat ? Number(destLat).toFixed(4) + ', ' + Number(destLng).toFixed(4) : '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="grid grid-cols-3 gap-1.5 text-center text-[10px]">
+              <div class="bg-slate-900/60 border border-slate-700/60 p-1.5 rounded-lg">
+                <p class="text-slate-400">🛣️ ระยะทาง</p>
+                <p class="font-bold text-indigo-300 text-xs mt-0.5" id="sw-dist-${cardId}">${distRemaining} กม.</p>
+              </div>
+              <div class="bg-slate-900/60 border border-slate-700/60 p-1.5 rounded-lg">
+                <p class="text-slate-400">⏱️ ETA</p>
+                <p class="font-bold text-amber-300 text-xs mt-0.5" id="sw-eta-${cardId}">${etaText}</p>
+              </div>
+              <div class="bg-slate-900/60 border border-slate-700/60 p-1.5 rounded-lg">
+                <p class="text-slate-400">🚶 ความเร็ว</p>
+                <p class="font-bold text-emerald-300 text-xs mt-0.5" id="sw-speed-${cardId}">${speedText} km/h</p>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center text-[10px] text-slate-400 pt-0.5">
+              <span>สถานะ: <b id="sw-routestatus-${cardId}" class="${statusTextColor}">${routeStatus}</b></span>
+              <span id="sw-updated-${cardId}"><i class="fa-solid fa-rotate mr-1 text-[9px]"></i>อัปเดต ${lastUpdatedTime}</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button onclick="focusSafeWalkOnMap('${data.id || cardId}', ${userLat || 16.4746}, ${userLng || 102.8234}, ${destLat || 'null'}, ${destLng || 'null'}, '${destName}')" class="w-full bg-slate-800 hover:bg-slate-900 border border-indigo-500/40 text-indigo-200 text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow-sm">
+              <i class="fa-solid fa-map-location-dot text-indigo-400"></i>
+              <span>ดูเส้นทาง & หมุด</span>
+            </button>
+            <a href="tel:0817080088" onclick="logAdminCallback('${userDisplay}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
+              <i class="fa-solid fa-phone-volume"></i>
+              <span>โทรกลับ User</span>
+            </a>
+          </div>
+        `;
+      } else {
+        let imgHtml = '';
+        if (data.image) {
+          imgHtml = `<div class="mt-2"><p class="text-[10px] text-slate-400 mb-1">ภาพถ่ายแนบจากผู้แจ้งเหตุ:</p><img src="${data.image}" class="max-h-40 rounded-xl border border-slate-600 object-cover w-full"></div>`;
+        }
+
+        const eventMessage = data.detail || data.message || data.title || 'ไม่มีรายละเอียดเพิ่มเติม';
+
+        div.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div class="flex items-center space-x-1.5">
+              <span class="${badgeClass} text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide">
+                ${icon} ${finalCategory}
+              </span>
+              ${isSOS ? '<span class="bg-red-500/20 text-red-300 border border-red-500/40 text-[9px] font-bold px-1.5 py-0.5 rounded">CRITICAL</span>' : ''}
+            </div>
+            <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${data.time || 'เมื่อครู่'}</span>
+          </div>
+          <p class="text-xs ${isSOS ? 'text-white font-bold' : 'text-slate-200 font-medium'} leading-snug">${eventMessage}</p>
+          <p class="text-[11px] text-slate-400"><i class="fa-solid fa-user text-slate-500 mr-1"></i> ${data.user || 'นักศึกษา มข.'}</p>
+          ${data.location ? `<p class="text-[11px] text-slate-400"><i class="fa-solid fa-location-dot text-slate-500 mr-1"></i> ${data.location}</p>` : ''}
+          ${imgHtml}
+          <div class="grid grid-cols-2 gap-2 pt-2">
+            <button onclick="focusMap(${data.lat || 16.4746}, ${data.lng || 102.8234}, '${finalCategory}')" class="w-full bg-slate-800 hover:bg-slate-900 border border-slate-600 text-slate-200 text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1">
+              <i class="fa-solid fa-crosshairs text-sky-400"></i>
+              <span>ปักหมุด</span>
+            </button>
+            <a href="tel:0817080088" onclick="logAdminCallback('${data.user || 'นักศึกษา'}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
+              <i class="fa-solid fa-phone-volume"></i>
+              <span>โทรกลับ User</span>
+            </a>
+          </div>
+        `;
+      }
 
       container.prepend(div);
-      if (data.lat && data.lng) {
-        addMapMarker(data.id || cardId, data.lat, data.lng, finalCategory + ': ' + eventMessage, finalCategory);
+      updateTotalAlertCounter();
+    }
+
+    function updateSafeWalkMap(data) {
+      if (!adminMap) return;
+      const id = data.id || data.notificationId;
+      if (!id) return;
+
+      const userLat = data.currentLatitude || data.lat;
+      const userLng = data.currentLongitude || data.lng;
+      const destLat = data.destinationLatitude || data.destinationLat;
+      const destLng = data.destinationLongitude || data.destinationLng;
+      const destName = data.destinationName || data.destination || 'จุดหมายปลายทาง';
+      const userDisplay = data.user || data.userId || 'นักศึกษา';
+      const isDeviated = data.routeStatus === 'ออกนอกเส้นทาง' || data.status === 'deviated';
+      const isCompleted = data.routeStatus === 'ถึงปลายทางแล้ว' || data.status === 'completed';
+
+      // 1. User Marker
+      if (userLat && userLng) {
+        if (markers[id]) {
+          markers[id].setLatLng([userLat, userLng]);
+        } else {
+          const userIcon = L.divIcon({
+            html: `<div class="bg-indigo-600 border-2 border-white rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-lg text-white font-bold animate-bounce">🚶</div>`,
+            className: 'custom-admin-user-icon',
+            iconSize: [32, 32]
+          });
+          const m = L.marker([userLat, userLng], { icon: userIcon }).addTo(adminMap);
+          m.bindPopup(`<b>🚶 SafeWalk: ${userDisplay}</b><br>ไปยัง: ${destName}<br>พิกัด: ${userLat.toFixed(5)}, ${userLng.toFixed(5)}`);
+          markers[id] = m;
+        }
+      }
+
+      // 2. Destination Marker
+      if (destLat && destLng) {
+        if (destMarkers[id]) {
+          destMarkers[id].setLatLng([destLat, destLng]);
+        } else {
+          const destIcon = L.divIcon({
+            html: `<div class="bg-red-600 border-2 border-white rounded-full w-8 h-8 flex items-center justify-center text-xs shadow-lg text-white font-bold">📍</div>`,
+            className: 'custom-admin-dest-icon',
+            iconSize: [32, 32]
+          });
+          const dm = L.marker([destLat, destLng], { icon: destIcon }).addTo(adminMap);
+          dm.bindPopup(`<b>📍 ปลายทาง SafeWalk</b><br>${destName}<br>พิกัด: ${Number(destLat).toFixed(5)}, ${Number(destLng).toFixed(5)}`);
+          destMarkers[id] = dm;
+        }
+      }
+
+      // 3. Route Polyline
+      if (userLat && userLng && destLat && destLng) {
+        const polyCoords = [[userLat, userLng], [destLat, destLng]];
+        const polyColor = isDeviated ? '#EF4444' : (isCompleted ? '#10B981' : '#6366F1');
+        const dash = isDeviated ? '6, 6' : null;
+
+        if (safewalkRoutes[id]) {
+          safewalkRoutes[id].setLatLngs(polyCoords);
+          safewalkRoutes[id].setStyle({ color: polyColor, dashArray: dash });
+        } else {
+          safewalkRoutes[id] = L.polyline(polyCoords, {
+            color: polyColor,
+            weight: 4,
+            opacity: 0.85,
+            dashArray: dash
+          }).addTo(adminMap);
+        }
+      }
+    }
+
+    function focusSafeWalkOnMap(id, userLat, userLng, destLat, destLng, destName) {
+      if (!adminMap) return;
+      if (userLat && userLng && destLat && destLng) {
+        const bounds = L.latLngBounds([[userLat, userLng], [destLat, destLng]]);
+        adminMap.fitBounds(bounds, { padding: [60, 60], maxZoom: 17 });
+      } else if (userLat && userLng) {
+        adminMap.setView([userLat, userLng], 17);
+      }
+      if (markers[id]) {
+        markers[id].openPopup();
       }
     }
 
@@ -455,7 +838,11 @@
         localStorage.removeItem('careme_sos_data');
         localStorage.removeItem('careme_report_data');
         Object.values(markers).forEach(m => adminMap.removeLayer(m));
+        Object.values(destMarkers).forEach(m => adminMap.removeLayer(m));
+        Object.values(safewalkRoutes).forEach(r => adminMap.removeLayer(r));
         markers = {};
+        destMarkers = {};
+        safewalkRoutes = {};
         loadDataFromStorage();
       }
     }
@@ -469,12 +856,19 @@
         addAlertCard(payload, 'SOS');
       } else if (type === 'START_SAFEWALK') {
         addAlertCard(payload, 'SafeWalk');
+        updateSafeWalkMap(payload);
       } else if (type === 'SUBMIT_REPORT') {
         addAlertCard(payload, 'Report');
       } else if (type === 'GPS_UPDATE') {
-        if (markers[payload.id]) {
+        if (payload.type === 'SAFEWALK' || payload.category === 'SafeWalk') {
+          updateSafeWalkCard(payload);
+          updateSafeWalkMap(payload);
+        } else if (markers[payload.id]) {
           markers[payload.id].setLatLng([payload.lat, payload.lng]);
         }
+      } else if (type === 'END_SAFEWALK') {
+        updateSafeWalkCard({ ...payload, status: 'completed', routeStatus: 'ถึงปลายทางแล้ว' });
+        updateSafeWalkMap({ ...payload, status: 'completed', routeStatus: 'ถึงปลายทางแล้ว' });
       }
     };
 

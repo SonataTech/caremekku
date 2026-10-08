@@ -1636,11 +1636,16 @@
         if (type === 'TRIGGER_SOS' || type === 'START_SAFEWALK') {
           caremeDb.ref('sos/' + payload.id).set(payload);
         } else if (type === 'GPS_UPDATE') {
-          caremeDb.ref('sos/' + payload.id).update({ lat: payload.lat, lng: payload.lng, speed: payload.speed, time: payload.time });
+          caremeDb.ref('sos/' + payload.id).update(payload);
         } else if (type === 'SUBMIT_REPORT') {
           caremeDb.ref('reports/' + payload.id).set(payload);
         } else if (type === 'STOP_TRACKING' || type === 'END_SAFEWALK') {
-          caremeDb.ref('sos/' + payload.id).update({ status: 'ended' });
+          caremeDb.ref('sos/' + payload.id).update({
+            status: type === 'END_SAFEWALK' ? 'completed' : 'ended',
+            routeStatus: type === 'END_SAFEWALK' ? 'ถึงปลายทางแล้ว' : 'ยกเลิกการเดินทาง',
+            completedAt: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+            lastUpdatedAt: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+          });
         }
       } else {
         offlineQueue.push({ type: type, payload: payload });
@@ -1659,20 +1664,47 @@
       document.getElementById('trackingTitle').innerText = (type === 'SOS' ? '🚨 SOS ฉุกเฉิน: ' : '🚶‍♀️ Safe Walk: ') + title;
       banner.classList.remove('hidden');
 
+      const isSafeWalk = type === 'SAFEWALK';
+      const distInitial = (isSafeWalk && destinationLat !== null && destinationLng !== null)
+        ? getDistanceFromLatLonInKm(currentLat, currentLng, destinationLat, destinationLng).toFixed(2)
+        : "0.0";
+      const etaInitial = Math.max(1, Math.round((parseFloat(distInitial) / 4.5) * 60));
+      const timeNow = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+
       const initialPayload = {
         id: activeSessionId,
         type: type,
+        category: isSafeWalk ? 'SafeWalk' : 'SOS',
         title: title,
-        user: currentUserSession ? (currentUserSession.email || currentUserSession.username) : "นักศึกษา มข.",
+        userId: currentUserSession ? (currentUserSession.id || currentUserSession.username || currentUserSession.email) : "student_user",
+        user: currentUserSession ? (currentUserSession.username || currentUserSession.name || currentUserSession.email) : "นักศึกษา มข.",
+        startLocation: "มหาวิทยาลัยขอนแก่น",
+        startLat: currentLat,
+        startLng: currentLng,
+        destination: isSafeWalk ? (destinationName || "จุดหมายปลายทาง") : null,
+        destinationName: isSafeWalk ? (destinationName || "จุดหมายปลายทาง") : null,
+        destinationAddress: isSafeWalk ? (destinationName || "มหาวิทยาลัยขอนแก่น") : null,
+        destinationLatitude: isSafeWalk ? destinationLat : null,
+        destinationLongitude: isSafeWalk ? destinationLng : null,
+        destinationLat: isSafeWalk ? destinationLat : null,
+        destinationLng: isSafeWalk ? destinationLng : null,
+        currentLatitude: currentLat,
+        currentLongitude: currentLng,
         lat: currentLat,
         lng: currentLng,
+        distanceRemaining: distInitial,
+        eta: etaInitial + " นาที",
         speed: 0.0,
-        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+        routeStatus: "ปกติ",
+        status: "walking",
+        startedAt: timeNow,
+        lastUpdatedAt: timeNow,
+        time: timeNow
       };
 
       saveToLocal('careme_sos_data', initialPayload);
-      dispatchEvent(type === 'SOS' ? 'TRIGGER_SOS' : 'START_SAFEWALK', initialPayload);
-      logEvent(type === 'SOS' ? 'SOS_STARTED' : 'SAFEWALK_STARTED', initialPayload);
+      dispatchEvent(isSafeWalk ? 'START_SAFEWALK' : 'TRIGGER_SOS', initialPayload);
+      logEvent(isSafeWalk ? 'SAFEWALK_STARTED' : 'SOS_STARTED', initialPayload);
 
       checkpointInterval = setInterval(() => {
         const checkpoint = {
@@ -1701,10 +1733,18 @@
         const speedDisplay = currentSpeedKmh.toFixed(1);
         document.getElementById('trackingCoords').innerText = `พิกัดสด: ${currentLat.toFixed(5)}, ${currentLng.toFixed(5)} | ความเร็ว: ${speedDisplay} กม./ชม.`;
         
+        let distRemainingKm = "0.0";
+        let etaMins = 1;
+        let routeStatusStr = isCurrentlyDeviated ? "ออกนอกเส้นทาง" : "ปกติ";
+        let deviationMeters = 0;
+
         if (destinationLat !== null && destinationLng !== null && activeSessionType === 'SAFEWALK') {
-          const distRemainingKm = getDistanceFromLatLonInKm(currentLat, currentLng, destinationLat, destinationLng);
+          distRemainingKm = getDistanceFromLatLonInKm(currentLat, currentLng, destinationLat, destinationLng).toFixed(2);
+          const speedCalc = currentSpeedKmh > 0.5 ? currentSpeedKmh : 4.5;
+          etaMins = Math.max(1, Math.round((parseFloat(distRemainingKm) / speedCalc) * 60));
+
           if (document.getElementById('swDistRemaining')) {
-            document.getElementById('swDistRemaining').innerText = distRemainingKm.toFixed(2) + " กม.";
+            document.getElementById('swDistRemaining').innerText = distRemainingKm + " กม.";
           }
           if (document.getElementById('swSpeed')) {
             document.getElementById('swSpeed').innerText = speedDisplay;
@@ -1713,16 +1753,19 @@
           const distanceFromStart = getDistanceFromLatLonInKm(initialPayload.lat, initialPayload.lng, currentLat, currentLng) * 1000;
           if (distanceFromStart > 120 && !isCurrentlyDeviated) {
             isCurrentlyDeviated = true;
+            deviationMeters = Math.round(distanceFromStart);
+            routeStatusStr = "ออกนอกเส้นทาง";
             logEvent('ROUTE_DEVIATION', { sessionId: activeSessionId, distance: distanceFromStart });
             createNotification({
               category: "SafeWalk",
               type: "ROUTE_DEVIATION",
-              message: `ผู้ใช้ออกนอกเส้นทางประมาณ ${Math.round(distanceFromStart)} เมตร`,
+              message: `ผู้ใช้ออกนอกเส้นทางประมาณ ${deviationMeters} เมตร`,
               priority: "HIGH",
               relatedId: activeSessionId
             });
           } else if (distanceFromStart <= 80 && isCurrentlyDeviated) {
             isCurrentlyDeviated = false;
+            routeStatusStr = "กลับเข้าสู่เส้นทาง";
             logEvent('BACK_ON_TRACK', { sessionId: activeSessionId });
             createNotification({
               category: "SafeWalk",
@@ -1734,13 +1777,32 @@
           }
         }
 
+        const updateTime = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
         const livePing = {
           id: activeSessionId,
           type: type,
+          category: isSafeWalk ? 'SafeWalk' : 'SOS',
+          userId: currentUserSession ? (currentUserSession.id || currentUserSession.username || currentUserSession.email) : "student_user",
+          user: currentUserSession ? (currentUserSession.username || currentUserSession.name || currentUserSession.email) : "นักศึกษา มข.",
           lat: currentLat,
           lng: currentLng,
-          speed: currentSpeedKmh,
-          time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+          currentLatitude: currentLat,
+          currentLongitude: currentLng,
+          speed: parseFloat(speedDisplay),
+          distanceRemaining: distRemainingKm,
+          eta: etaMins + " นาที",
+          routeStatus: routeStatusStr,
+          status: isCurrentlyDeviated ? "deviated" : "walking",
+          deviationDistance: deviationMeters,
+          lastUpdatedAt: updateTime,
+          time: updateTime,
+          destination: isSafeWalk ? destinationName : null,
+          destinationName: isSafeWalk ? destinationName : null,
+          destinationAddress: isSafeWalk ? destinationName : null,
+          destinationLatitude: isSafeWalk ? destinationLat : null,
+          destinationLongitude: isSafeWalk ? destinationLng : null,
+          destinationLat: isSafeWalk ? destinationLat : null,
+          destinationLng: isSafeWalk ? destinationLng : null
         };
         dispatchEvent('GPS_UPDATE', livePing);
       }, 2500);
