@@ -520,6 +520,59 @@
     // ==========================================
     // DATA SYNC & REALTIME LISTENERS
     // ==========================================
+    function isEventFinished(data) {
+      if (!data) return false;
+      return data.archived === true ||
+        data.status === 'RESOLVED' ||
+        data.status === 'CANCELLED' ||
+        data.status === 'COMPLETED' ||
+        data.status === 'completed' ||
+        data.status === 'ended' ||
+        data.routeStatus === 'ถึงปลายทางแล้ว' ||
+        data.routeStatus === 'ยกเลิกการเดินทาง' ||
+        data.routeStatus === 'แอดมินปิดจบงานแล้ว' ||
+        data.routeStatus === 'แอดมินยกเลิกเหตุ' ||
+        (data.routeStatus && data.routeStatus.includes('เสร็จสิ้น')) ||
+        (data.routeStatus && data.routeStatus.includes('ยกเลิก'));
+    }
+
+    function handleRealtimeItemUpdate(data, defaultCategory) {
+      if (!data) return;
+      const id = data.id || data.sessionId || data.notificationId;
+      if (!id) return;
+
+      const cat = getEventCategory(data, defaultCategory);
+
+      if (isEventFinished(data)) {
+        // Automatically remove finished/cancelled item from live feed and map!
+        removeAlertFromUI(id);
+        return;
+      }
+
+      // Active item: update cache and live feed/map
+      activeSessionsCache[id] = data;
+      addAlertCard(data, cat);
+
+      if (cat === 'SafeWalk') {
+        updateSafeWalkCard(data);
+        updateSafeWalkMap(data);
+      } else if (cat === 'Report') {
+        updateReportCard(data);
+        if (data.lat && data.lng) {
+          addMapMarker(id, data.lat, data.lng, data.title || 'รายงานเหตุ', cat);
+        }
+      } else if (data.lat && data.lng) {
+        addMapMarker(id, data.lat, data.lng, data.title || cat, cat);
+      }
+
+      updateSummaryDashboardStats();
+    }
+
+    function handleRealtimeItemRemoved(id) {
+      if (!id) return;
+      removeAlertFromUI(id);
+    }
+
     function loadDataFromStorage() {
       if (!verifyAdminAccess()) return;
 
@@ -530,45 +583,43 @@
             const reportVal = reportSnapshot.val() || {};
             const notifVal = notifSnapshot.val() || {};
 
-            Object.assign(activeSessionsCache, sosVal, reportVal);
-
+            // Clear UI and cache before loading
             document.getElementById('alertsContainer').innerHTML = '';
+            Object.values(markers).forEach(m => adminMap && adminMap.removeLayer(m));
+            Object.values(destMarkers).forEach(m => adminMap && adminMap.removeLayer(m));
+            Object.values(safewalkRoutes).forEach(r => adminMap && adminMap.removeLayer(r));
+            markers = {};
+            destMarkers = {};
+            safewalkRoutes = {};
+            activeSessionsCache = {};
 
             const allItems = [...Object.values(sosVal), ...Object.values(reportVal)];
-            if (allItems.length === 0) {
-              document.getElementById('alertsContainer').innerHTML = `
-                <div id="emptyAlertState" class="text-center text-slate-500 py-16 text-xs">
-                  <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
-                  ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
-                </div>`;
-              updateSummaryDashboardStats();
-              return;
-            }
+            let activeCount = 0;
 
             allItems.forEach(data => {
-              const isFinished = data.archived === true ||
-                data.status === 'RESOLVED' ||
-                data.status === 'CANCELLED' ||
-                data.status === 'COMPLETED' ||
-                data.status === 'completed' ||
-                data.status === 'ended' ||
-                data.routeStatus === 'ถึงปลายทางแล้ว' ||
-                data.routeStatus === 'ยกเลิกการเดินทาง' ||
-                data.routeStatus === 'แอดมินปิดจบงานแล้ว' ||
-                data.routeStatus === 'แอดมินยกเลิกเหตุ';
-
-              if (isFinished) {
+              if (isEventFinished(data)) {
                 return; // Do not display finished or cancelled events in active live feed!
               }
+              const id = data.id || data.sessionId;
+              if (id) activeSessionsCache[id] = data;
 
               const cat = getEventCategory(data, data.type === 'SAFEWALK' ? 'SafeWalk' : 'SOS');
               addAlertCard(data, cat);
               if (cat === 'SafeWalk') {
                 updateSafeWalkMap(data);
               } else if (data.lat && data.lng) {
-                addMapMarker(data.id || data.sessionId, data.lat, data.lng, data.title || cat, cat);
+                addMapMarker(id, data.lat, data.lng, data.title || cat, cat);
               }
+              activeCount++;
             });
+
+            if (activeCount === 0) {
+              document.getElementById('alertsContainer').innerHTML = `
+                <div id="emptyAlertState" class="text-center text-slate-500 py-16 text-xs">
+                  <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
+                  ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
+                </div>`;
+            }
 
             updateSummaryDashboardStats();
             filterAdminFeed(currentAdminFeedFilter);
@@ -581,75 +632,72 @@
       if (!verifyAdminAccess()) return;
 
       caremeDb.ref('sos').on('child_added', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          activeSessionsCache[data.id || data.sessionId] = data;
-          const cat = getEventCategory(data, data.type === 'SAFEWALK' ? 'SafeWalk' : 'SOS');
-          addAlertCard(data, cat);
-          if (cat === 'SafeWalk') {
-            updateSafeWalkMap(data);
-          } else if (data.lat && data.lng) {
-            addMapMarker(data.id || data.sessionId, data.lat, data.lng, data.title || cat, cat);
-          }
-          updateSummaryDashboardStats();
-        }
+        handleRealtimeItemUpdate(snapshot.val(), 'SOS');
       });
 
       caremeDb.ref('sos').on('child_changed', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          activeSessionsCache[data.id || data.sessionId] = data;
-          const cat = getEventCategory(data, data.type === 'SAFEWALK' ? 'SafeWalk' : 'SOS');
-          if (cat === 'SafeWalk') {
-            updateSafeWalkCard(data);
-            updateSafeWalkMap(data);
-          } else if (data.lat && data.lng) {
-            addMapMarker(data.id || data.sessionId, data.lat, data.lng, data.title || cat, cat);
-          }
-          updateSummaryDashboardStats();
-        }
+        handleRealtimeItemUpdate(snapshot.val(), 'SOS');
+      });
+
+      caremeDb.ref('sos').on('child_removed', (snapshot) => {
+        const val = snapshot.val();
+        handleRealtimeItemRemoved(snapshot.key || (val && (val.id || val.sessionId)));
       });
 
       caremeDb.ref('reports').on('child_added', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          activeSessionsCache[data.id] = data;
-          const cat = getEventCategory(data, 'Report');
-          addAlertCard(data, cat);
-          if (data.lat && data.lng && data.status !== 'RESOLVED') {
-            addMapMarker(data.id, data.lat, data.lng, data.title || 'รายงานเหตุ', cat);
-          }
-          updateSummaryDashboardStats();
-        }
+        handleRealtimeItemUpdate(snapshot.val(), 'Report');
       });
 
       caremeDb.ref('reports').on('child_changed', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          activeSessionsCache[data.id] = data;
-          updateReportCard(data);
-          updateSummaryDashboardStats();
-        }
+        handleRealtimeItemUpdate(snapshot.val(), 'Report');
+      });
+
+      caremeDb.ref('reports').on('child_removed', (snapshot) => {
+        const val = snapshot.val();
+        handleRealtimeItemRemoved(snapshot.key || (val && (val.id || val.reportId)));
       });
 
       caremeDb.ref('allNotifications').on('child_added', (snapshot) => {
         const notif = snapshot.val();
         if (notif) {
-          activeSessionsCache[notif.notificationId || notif.id] = notif;
-          const cat = getEventCategory(notif, notif.category || 'SafeWalk');
-          addAlertCard({
+          handleRealtimeItemUpdate({
             id: notif.notificationId || notif.id,
-            title: notif.title || cat,
+            title: notif.title,
             detail: notif.message,
             user: notif.userId,
             lat: notif.latitude,
             lng: notif.longitude,
             time: notif.time,
             type: notif.type,
-            category: cat
-          }, cat);
-          updateSummaryDashboardStats();
+            category: notif.category,
+            status: notif.status,
+            archived: notif.archived
+          }, notif.category || 'SafeWalk');
         }
+      });
+
+      caremeDb.ref('allNotifications').on('child_changed', (snapshot) => {
+        const notif = snapshot.val();
+        if (notif) {
+          handleRealtimeItemUpdate({
+            id: notif.notificationId || notif.id,
+            title: notif.title,
+            detail: notif.message,
+            user: notif.userId,
+            lat: notif.latitude,
+            lng: notif.longitude,
+            time: notif.time,
+            type: notif.type,
+            category: notif.category,
+            status: notif.status,
+            archived: notif.archived
+          }, notif.category || 'SafeWalk');
+        }
+      });
+
+      caremeDb.ref('allNotifications').on('child_removed', (snapshot) => {
+        const val = snapshot.val();
+        handleRealtimeItemRemoved(snapshot.key || (val && (val.id || val.notificationId)));
       });
     }
 
@@ -657,6 +705,10 @@
     // ALERT CARDS RENDERING (RULES 20, 21)
     // ==========================================
     function addAlertCard(data, category) {
+      if (isEventFinished(data)) {
+        return;
+      }
+
       const container = document.getElementById('alertsContainer');
       const emptyState = document.getElementById('emptyAlertState');
       if (emptyState && !emptyState.classList.contains('hidden')) {
