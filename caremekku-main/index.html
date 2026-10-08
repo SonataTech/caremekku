@@ -114,6 +114,68 @@
     </div>
   </div>
 
+  <!-- NOTIFICATION PANEL MODAL -->
+  <div id="notificationModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4">
+    <div class="w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- NOTIF HEADER -->
+      <div class="bg-gradient-to-r from-kkuNavy to-slate-900 text-white px-5 py-4 flex justify-between items-center shadow-sm">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center text-sky-300 text-base shadow-inner backdrop-blur-sm border border-white/10">
+            <i class="fa-solid fa-bell"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">การแจ้งเตือน (Notifications)</h3>
+            <p class="text-[10px] text-sky-200" id="notifUnreadSummary">0 รายการที่ยังไม่อ่าน</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="markAllNotificationsAsRead()" class="text-[10px] font-bold bg-white/15 hover:bg-white/25 text-white px-2.5 py-1 rounded-lg transition">
+            <i class="fa-solid fa-check-double mr-0.5"></i> อ่านทั้งหมด
+          </button>
+          <button onclick="toggleNotificationModal()" class="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center text-xs transition">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- NOTIFICATION FILTER TABS -->
+      <div class="flex space-x-1.5 px-4 py-2 bg-slate-100 border-b border-slate-200 text-[11px] overflow-x-auto no-scrollbar">
+        <button onclick="filterNotifTab('ALL')" id="notifTabAll" class="px-3 py-1 rounded-xl font-bold bg-kkuNavy text-white shadow-sm whitespace-nowrap">ทั้งหมด</button>
+        <button onclick="filterNotifTab('UNREAD')" id="notifTabUnread" class="px-3 py-1 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:border-kkuBlue whitespace-nowrap">ยังไม่อ่าน</button>
+        <button onclick="filterNotifTab('SOS')" id="notifTabSOS" class="px-3 py-1 rounded-xl font-bold bg-white text-red-600 border border-slate-200 hover:border-red-400 whitespace-nowrap">🚨 SOS</button>
+        <button onclick="filterNotifTab('SafeWalk')" id="notifTabSafeWalk" class="px-3 py-1 rounded-xl font-bold bg-white text-indigo-600 border border-slate-200 hover:border-indigo-400 whitespace-nowrap">🚶 SafeWalk</button>
+        <button onclick="filterNotifTab('Danger Area')" id="notifTabDanger" class="px-3 py-1 rounded-xl font-bold bg-white text-amber-600 border border-slate-200 hover:border-amber-400 whitespace-nowrap">⚠️ Danger Area</button>
+        <button onclick="filterNotifTab('Report')" id="notifTabReport" class="px-3 py-1 rounded-xl font-bold bg-white text-blue-600 border border-slate-200 hover:border-blue-400 whitespace-nowrap">📌 Report</button>
+        <button onclick="filterNotifTab('GPS')" id="notifTabGPS" class="px-3 py-1 rounded-xl font-bold bg-white text-sky-600 border border-slate-200 hover:border-sky-400 whitespace-nowrap">📡 GPS</button>
+        <button onclick="filterNotifTab('Group / Family')" id="notifTabGroup" class="px-3 py-1 rounded-xl font-bold bg-white text-teal-600 border border-slate-200 hover:border-teal-400 whitespace-nowrap">👥 Group</button>
+      </div>
+
+      <!-- NOTIFICATION LIST CONTAINER -->
+      <div id="notificationListContainer" class="flex-1 overflow-y-auto p-4 space-y-2.5 no-scrollbar max-h-[480px] bg-slate-50/50 min-h-[220px]">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- NOTIF FOOTER -->
+      <div class="bg-slate-50 border-t border-slate-200 px-4 py-2.5 flex justify-between items-center text-xs">
+        <button onclick="clearAllNotifications()" class="text-red-500 hover:text-red-700 text-[11px] font-medium flex items-center space-x-1">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>ล้างประวัติการแจ้งเตือน</span>
+        </button>
+        <button onclick="toggleNotificationModal()" class="bg-slate-800 hover:bg-black text-white font-bold text-xs px-4 py-1.5 rounded-xl transition">
+          ปิด
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION POPUP -->
+  <div id="notificationToast" class="fixed top-4 inset-x-4 max-w-sm mx-auto z-50 pointer-events-auto transform -translate-y-32 opacity-0 transition-all duration-300 ease-out hidden">
+    <div id="toastInnerContent" class="bg-white border-2 border-slate-800 rounded-2xl p-3.5 shadow-2xl flex items-start space-x-3 cursor-pointer" onclick="handleToastClick()">
+      <!-- Toast content inserted by JS -->
+    </div>
+  </div>
+
   <!-- MAIN APP CONTAINER -->
   <div class="w-full max-w-md bg-white min-h-screen sm:min-h-[844px] sm:rounded-[36px] shadow-2xl flex flex-col overflow-hidden relative border-0 sm:border-8 border-slate-800">
     
@@ -130,6 +192,11 @@
           <div id="networkBadge" class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2 py-1 rounded-full font-medium transition flex items-center space-x-1">
             <span id="netDot">🟢</span> <span id="netStatusText">ออนไลน์</span>
           </div>
+          <!-- NOTIFICATION BELL BUTTON -->
+          <button onclick="toggleNotificationModal()" title="การแจ้งเตือน" class="relative text-xs bg-white/10 hover:bg-white/20 text-white p-2 rounded-full transition flex items-center justify-center">
+            <i class="fa-solid fa-bell text-sm"></i>
+            <span id="unreadNotifBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center border-2 border-kkuNavy animate-pulse">0</span>
+          </button>
           <button onclick="logoutApp()" title="ออกจากระบบ" class="text-xs bg-white/10 hover:bg-white/20 text-white px-2.5 py-1 rounded-full transition flex items-center space-x-1">
             <i class="fa-solid fa-right-from-bracket"></i>
           </button>
@@ -561,6 +628,18 @@
     let currentUserSession = null;
     const channel = new BroadcastChannel('careme_kku_channel');
 
+    let userNotifications = [];
+    let currentNotifFilter = 'ALL';
+    let isCurrentlyDeviated = false;
+    let toastTimeout = null;
+    let visitedDangerZones = new Set();
+    let hasLoggedGpsFailure = false;
+
+    const dangerZones = [
+      { id: 'zone_pool', name: "ทางเดินเปลี่ยวและจุดอับแสงข้างสระพลาสติก มข.", lat: 16.4760, lng: 102.8190, radiusM: 100 },
+      { id: 'zone_back', name: "จุดเสี่ยงมุมอับสัญญาณหลังตึกกิจกรรมนักศึกษา", lat: 16.4715, lng: 102.8215, radiusM: 80 }
+    ];
+
     let miniMapInstance, fullMapInstance, safeWalkMapInstance;
     let userMarkerMini, userMarkerFull, userMarkerSafeWalk;
     let destinationMarkerSafeWalk = null;
@@ -779,6 +858,393 @@
       checkDeviceGPS();
       initAdminCredentials();
       loadSavedPlaces();
+      loadUserNotifications();
+    }
+
+    // ==========================================
+    // CAREME KKU NOTIFICATION SYSTEM
+    // ==========================================
+    function loadUserNotifications() {
+      try {
+        const saved = localStorage.getItem('careme_notifications');
+        if (saved) {
+          userNotifications = JSON.parse(saved);
+        } else {
+          userNotifications = [];
+        }
+      } catch(e) {
+        userNotifications = [];
+      }
+
+      const auth = getCaremeAuth();
+      if (auth) {
+        const uid = auth.id || auth.username || auth.email;
+        caremeDb.ref(`notifications/${uid}`).limitToLast(40).once('value', (snapshot) => {
+          const val = snapshot.val();
+          if (val) {
+            const list = Object.values(val);
+            const existingIds = new Set(userNotifications.map(n => n.notificationId));
+            list.forEach(item => {
+              if (!existingIds.has(item.notificationId)) {
+                userNotifications.unshift(item);
+              }
+            });
+            userNotifications.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            persistNotifications();
+          }
+          updateNotificationUI();
+        });
+      }
+
+      updateNotificationUI();
+    }
+
+    function persistNotifications() {
+      try {
+        if (userNotifications.length > 80) userNotifications = userNotifications.slice(0, 80);
+        localStorage.setItem('careme_notifications', JSON.stringify(userNotifications));
+      } catch(e) {
+        console.error("persistNotifications error:", e);
+      }
+    }
+
+    function createNotification({ category, type, message, relatedId, latitude, longitude, priority }) {
+      const validCategories = ["SafeWalk", "SOS", "Group / Family", "Danger Area", "GPS", "Report"];
+      let finalCategory = validCategories.includes(category) ? category : "SafeWalk";
+
+      const notifId = 'notif_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      const auth = getCaremeAuth();
+      const userId = auth ? (auth.id || auth.username || auth.email || 'student_user') : 'student_user';
+
+      const notifObj = {
+        notificationId: notifId,
+        userId: userId,
+        category: finalCategory,
+        title: finalCategory, // หัวข้อต้องเป็นชื่อประเภทโดยตรงเสมอ
+        type: type || 'GENERAL',
+        message: message || '',
+        relatedId: relatedId || null,
+        latitude: latitude || currentLat,
+        longitude: longitude || currentLng,
+        createdAt: Date.now(),
+        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+        read: false,
+        priority: priority || (finalCategory === 'SOS' ? 'CRITICAL' : 'NORMAL')
+      };
+
+      userNotifications.unshift(notifObj);
+      persistNotifications();
+      updateNotificationUI();
+
+      // Sync to Firebase & BroadcastChannel
+      caremeDb.ref(`notifications/${userId}/${notifId}`).set(notifObj);
+      caremeDb.ref(`allNotifications/${notifId}`).set(notifObj);
+      channel.postMessage({ type: 'NEW_NOTIFICATION', payload: notifObj });
+
+      showNotificationToast(notifObj);
+      return notifObj;
+    }
+
+    function updateNotificationUI() {
+      const badge = document.getElementById('unreadNotifBadge');
+      const unreadCount = userNotifications.filter(n => !n.read).length;
+
+      if (badge) {
+        if (unreadCount > 0) {
+          badge.innerText = unreadCount > 99 ? '99+' : unreadCount;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+
+      const summary = document.getElementById('notifUnreadSummary');
+      if (summary) {
+        summary.innerText = unreadCount === 0 ? "ไม่มีการแจ้งเตือนที่ยังไม่อ่าน" : `${unreadCount} รายการที่ยังไม่อ่าน`;
+      }
+
+      renderNotificationList();
+    }
+
+    function renderNotificationList() {
+      const container = document.getElementById('notificationListContainer');
+      if (!container) return;
+
+      let filtered = userNotifications;
+      if (currentNotifFilter === 'UNREAD') {
+        filtered = userNotifications.filter(n => !n.read);
+      } else if (currentNotifFilter === 'SOS') {
+        filtered = userNotifications.filter(n => n.category === 'SOS');
+      } else if (currentNotifFilter === 'SafeWalk') {
+        filtered = userNotifications.filter(n => n.category === 'SafeWalk');
+      } else if (currentNotifFilter === 'Danger Area') {
+        filtered = userNotifications.filter(n => n.category === 'Danger Area');
+      } else if (currentNotifFilter === 'Report') {
+        filtered = userNotifications.filter(n => n.category === 'Report');
+      } else if (currentNotifFilter === 'GPS') {
+        filtered = userNotifications.filter(n => n.category === 'GPS');
+      } else if (currentNotifFilter === 'Group / Family') {
+        filtered = userNotifications.filter(n => n.category === 'Group / Family');
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="text-center text-slate-400 py-12 flex flex-col items-center">
+            <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-xl text-slate-400 mb-2 shadow-inner">
+              <i class="fa-regular fa-bell-slash"></i>
+            </div>
+            <p class="text-xs font-bold text-slate-600">ไม่มีรายการแจ้งเตือนในหมวดหมู่นี้</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">การแจ้งเตือน SafeWalk, SOS, GPS, Danger Area และรายงานจะแสดงที่นี่</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      filtered.forEach(item => {
+        const card = createNotificationCardElement(item);
+        container.appendChild(card);
+      });
+    }
+
+    function createNotificationCardElement(item) {
+      const div = document.createElement('div');
+      const isUnread = !item.read;
+      const isSOS = item.category === 'SOS';
+
+      let bgClass = "bg-white border-slate-200";
+      let badgeClass = "bg-slate-700 text-white";
+      let iconHtml = '<i class="fa-solid fa-bell"></i>';
+
+      if (item.category === 'SOS') {
+        bgClass = isUnread ? "bg-red-50/90 border-red-500 shadow-md shadow-red-500/15" : "bg-white border-red-300";
+        badgeClass = "bg-red-600 text-white animate-pulse font-bold";
+        iconHtml = '<i class="fa-solid fa-triangle-exclamation text-red-600"></i>';
+      } else if (item.category === 'SafeWalk') {
+        bgClass = isUnread ? "bg-indigo-50/70 border-indigo-300" : "bg-white border-slate-200";
+        badgeClass = "bg-indigo-600 text-white";
+        iconHtml = '<i class="fa-solid fa-person-walking text-indigo-600"></i>';
+      } else if (item.category === 'Danger Area') {
+        bgClass = isUnread ? "bg-amber-50/80 border-amber-400" : "bg-white border-slate-200";
+        badgeClass = "bg-amber-600 text-white";
+        iconHtml = '<i class="fa-solid fa-shield-halved text-amber-600"></i>';
+      } else if (item.category === 'Report') {
+        bgClass = isUnread ? "bg-blue-50/70 border-blue-300" : "bg-white border-slate-200";
+        badgeClass = "bg-kkuBlue text-white";
+        iconHtml = '<i class="fa-solid fa-file-pen text-blue-600"></i>';
+      } else if (item.category === 'GPS') {
+        bgClass = isUnread ? "bg-sky-50/70 border-sky-300" : "bg-white border-slate-200";
+        badgeClass = "bg-sky-600 text-white";
+        iconHtml = '<i class="fa-solid fa-location-crosshairs text-sky-600"></i>';
+      } else if (item.category === 'Group / Family') {
+        bgClass = isUnread ? "bg-teal-50/70 border-teal-300" : "bg-white border-slate-200";
+        badgeClass = "bg-teal-600 text-white";
+        iconHtml = '<i class="fa-solid fa-users text-teal-600"></i>';
+      }
+
+      div.className = `${bgClass} border rounded-2xl p-3 shadow-sm transition hover:shadow-md cursor-pointer relative select-none`;
+      div.onclick = (e) => {
+        if (e.target.closest('.btn-delete-notif')) return;
+        handleNotificationClick(item);
+      };
+
+      div.innerHTML = `
+        <div class="flex justify-between items-start mb-1.5">
+          <div class="flex items-center space-x-1.5">
+            <span class="text-xs">${iconHtml}</span>
+            <span class="${badgeClass} text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide">
+              ${item.title}
+            </span>
+            ${isSOS ? '<span class="bg-red-100 text-red-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-200">🚨 สำคัญสูงสุด</span>' : ''}
+            ${isUnread ? '<span class="w-2 h-2 rounded-full bg-red-500 inline-block animate-ping"></span>' : ''}
+          </div>
+          <div class="flex items-center space-x-1.5 text-[10px] text-slate-400">
+            <span><i class="fa-regular fa-clock mr-0.5"></i>${item.time || 'เมื่อครู่'}</span>
+            <button onclick="deleteSingleNotification('${item.notificationId}')" class="btn-delete-notif hover:text-red-500 p-0.5" title="ลบรายการ">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+        <p class="text-xs font-semibold ${isSOS ? 'text-red-950 font-bold' : 'text-slate-800'} mt-0.5 leading-relaxed">
+          ${item.message}
+        </p>
+        <div class="flex justify-between items-center mt-2 pt-1 border-t border-slate-100/80 text-[10px] text-slate-400">
+          <span class="text-kkuBlue font-medium"><i class="fa-solid fa-arrow-up-right-from-square mr-0.5"></i> แตะเพื่อเปิดหน้านี้</span>
+          <span>${isUnread ? '<span class="text-amber-600 font-bold">ยังไม่อ่าน</span>' : '<span class="text-slate-400">อ่านแล้ว</span>'}</span>
+        </div>
+      `;
+
+      return div;
+    }
+
+    function handleNotificationClick(item) {
+      markNotificationAsRead(item.notificationId);
+      toggleNotificationModal();
+
+      if (item.category === 'SafeWalk') {
+        switchTab('safewalk');
+      } else if (item.category === 'SOS') {
+        switchTab('home');
+      } else if (item.category === 'Report') {
+        switchTab('report');
+      } else if (item.category === 'Danger Area') {
+        switchTab('map');
+      } else if (item.category === 'GPS') {
+        switchTab('map');
+      } else if (item.category === 'Group / Family') {
+        switchTab('safewalk');
+      }
+    }
+
+    function toggleNotificationModal() {
+      const modal = document.getElementById('notificationModal');
+      if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        renderNotificationList();
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function filterNotifTab(filter) {
+      currentNotifFilter = filter;
+      const tabIds = [
+        { id: 'notifTabAll', val: 'ALL' },
+        { id: 'notifTabUnread', val: 'UNREAD' },
+        { id: 'notifTabSOS', val: 'SOS' },
+        { id: 'notifTabSafeWalk', val: 'SafeWalk' },
+        { id: 'notifTabDanger', val: 'Danger Area' },
+        { id: 'notifTabReport', val: 'Report' },
+        { id: 'notifTabGPS', val: 'GPS' },
+        { id: 'notifTabGroup', val: 'Group / Family' }
+      ];
+
+      tabIds.forEach(t => {
+        const el = document.getElementById(t.id);
+        if (el) {
+          if (t.val === filter) {
+            el.className = "px-3 py-1 rounded-xl font-bold bg-kkuNavy text-white shadow-sm whitespace-nowrap";
+          } else {
+            el.className = "px-3 py-1 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:border-kkuBlue whitespace-nowrap";
+          }
+        }
+      });
+
+      renderNotificationList();
+    }
+
+    function markNotificationAsRead(notifId) {
+      const notif = userNotifications.find(n => n.notificationId === notifId);
+      if (notif) {
+        notif.read = true;
+        persistNotifications();
+        updateNotificationUI();
+        const auth = getCaremeAuth();
+        if (auth) {
+          const uid = auth.id || auth.username || auth.email;
+          caremeDb.ref(`notifications/${uid}/${notifId}`).update({ read: true });
+        }
+      }
+    }
+
+    function markAllNotificationsAsRead() {
+      userNotifications.forEach(n => n.read = true);
+      persistNotifications();
+      updateNotificationUI();
+      const auth = getCaremeAuth();
+      if (auth) {
+        const uid = auth.id || auth.username || auth.email;
+        userNotifications.forEach(n => {
+          caremeDb.ref(`notifications/${uid}/${n.notificationId}`).update({ read: true });
+        });
+      }
+    }
+
+    function deleteSingleNotification(notifId) {
+      userNotifications = userNotifications.filter(n => n.notificationId !== notifId);
+      persistNotifications();
+      updateNotificationUI();
+      const auth = getCaremeAuth();
+      if (auth) {
+        const uid = auth.id || auth.username || auth.email;
+        caremeDb.ref(`notifications/${uid}/${notifId}`).remove();
+      }
+    }
+
+    function clearAllNotifications() {
+      if (confirm("คุณต้องการล้างประวัติการแจ้งเตือนทั้งหมดใช่หรือไม่?")) {
+        const auth = getCaremeAuth();
+        if (auth) {
+          const uid = auth.id || auth.username || auth.email;
+          caremeDb.ref(`notifications/${uid}`).remove();
+        }
+        userNotifications = [];
+        persistNotifications();
+        updateNotificationUI();
+      }
+    }
+
+    let latestToastNotif = null;
+    function showNotificationToast(item) {
+      latestToastNotif = item;
+      const toast = document.getElementById('notificationToast');
+      const inner = document.getElementById('toastInnerContent');
+      if (!toast || !inner) return;
+
+      const isSOS = item.category === 'SOS';
+      inner.className = isSOS 
+        ? "bg-red-950 border-2 border-red-500 text-white rounded-2xl p-3.5 shadow-2xl flex items-start space-x-3 cursor-pointer animate-bounce"
+        : "bg-slate-900 border-2 border-kkuBlue text-white rounded-2xl p-3.5 shadow-2xl flex items-start space-x-3 cursor-pointer";
+
+      inner.innerHTML = `
+        <div class="w-8 h-8 rounded-xl ${isSOS ? 'bg-red-600 text-white animate-pulse' : 'bg-kkuBlue text-white'} flex items-center justify-center text-sm shrink-0 shadow">
+          <i class="fa-solid ${isSOS ? 'fa-triangle-exclamation' : 'fa-bell'}"></i>
+        </div>
+        <div class="flex-1">
+          <div class="flex justify-between items-center">
+            <span class="text-[11px] font-bold ${isSOS ? 'text-red-400' : 'text-sky-300'} uppercase">${item.title}</span>
+            <span class="text-[10px] text-slate-400">${item.time}</span>
+          </div>
+          <p class="text-xs text-slate-100 font-medium mt-0.5 leading-snug">${item.message}</p>
+        </div>
+      `;
+
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.remove('-translate-y-32', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+      }, 50);
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('-translate-y-32', 'opacity-0');
+        setTimeout(() => toast.classList.add('hidden'), 350);
+      }, 5000);
+    }
+
+    function handleToastClick() {
+      if (latestToastNotif) {
+        handleNotificationClick(latestToastNotif);
+      }
+    }
+
+    function checkDangerZoneProximity(lat, lng) {
+      dangerZones.forEach(zone => {
+        const distM = getDistanceFromLatLonInKm(lat, lng, zone.lat, zone.lng) * 1000;
+        if (distM <= zone.radiusM && !visitedDangerZones.has(zone.id)) {
+          visitedDangerZones.add(zone.id);
+          createNotification({
+            category: "Danger Area",
+            type: "DANGER_AREA_ENTER",
+            message: `ผู้ใช้เข้าสู่พื้นที่เฝ้าระวัง: ${zone.name}`,
+            priority: "HIGH",
+            latitude: lat,
+            longitude: lng
+          });
+        } else if (distM > zone.radiusM * 1.6 && visitedDangerZones.has(zone.id)) {
+          visitedDangerZones.delete(zone.id);
+        }
+      });
     }
 
     function initSafeWalkMap() {
@@ -1085,8 +1551,21 @@
             if(userMarkerMini) userMarkerMini.setLatLng([currentLat, currentLng]);
             if(userMarkerFull) userMarkerFull.setLatLng([currentLat, currentLng]);
             if(userMarkerSafeWalk) userMarkerSafeWalk.setLatLng([currentLat, currentLng]);
+
+            checkDangerZoneProximity(currentLat, currentLng);
           },
-          (err) => console.log("ใช้ตำแหน่งจำลอง KKU GPS"),
+          (err) => {
+            console.log("ใช้ตำแหน่งจำลอง KKU GPS");
+            if (!hasLoggedGpsFailure) {
+              hasLoggedGpsFailure = true;
+              createNotification({
+                category: "GPS",
+                type: "GPS_LOST",
+                message: "ไม่สามารถรับตำแหน่ง GPS ได้ / กำลังใช้ตำแหน่งจำลอง",
+                priority: "HIGH"
+              });
+            }
+          },
           { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
         );
       }
@@ -1217,10 +1696,12 @@
         if(userMarkerFull) userMarkerFull.setLatLng([currentLat, currentLng]);
         if(userMarkerSafeWalk) userMarkerSafeWalk.setLatLng([currentLat, currentLng]);
 
+        checkDangerZoneProximity(currentLat, currentLng);
+
         const speedDisplay = currentSpeedKmh.toFixed(1);
         document.getElementById('trackingCoords').innerText = `พิกัดสด: ${currentLat.toFixed(5)}, ${currentLng.toFixed(5)} | ความเร็ว: ${speedDisplay} กม./ชม.`;
         
-        if (destinationLat !== null && destinationLng !== null) {
+        if (destinationLat !== null && destinationLng !== null && activeSessionType === 'SAFEWALK') {
           const distRemainingKm = getDistanceFromLatLonInKm(currentLat, currentLng, destinationLat, destinationLng);
           if (document.getElementById('swDistRemaining')) {
             document.getElementById('swDistRemaining').innerText = distRemainingKm.toFixed(2) + " กม.";
@@ -1230,8 +1711,26 @@
           }
 
           const distanceFromStart = getDistanceFromLatLonInKm(initialPayload.lat, initialPayload.lng, currentLat, currentLng) * 1000;
-          if (distanceFromStart > 120) {
+          if (distanceFromStart > 120 && !isCurrentlyDeviated) {
+            isCurrentlyDeviated = true;
             logEvent('ROUTE_DEVIATION', { sessionId: activeSessionId, distance: distanceFromStart });
+            createNotification({
+              category: "SafeWalk",
+              type: "ROUTE_DEVIATION",
+              message: `ผู้ใช้ออกนอกเส้นทางประมาณ ${Math.round(distanceFromStart)} เมตร`,
+              priority: "HIGH",
+              relatedId: activeSessionId
+            });
+          } else if (distanceFromStart <= 80 && isCurrentlyDeviated) {
+            isCurrentlyDeviated = false;
+            logEvent('BACK_ON_TRACK', { sessionId: activeSessionId });
+            createNotification({
+              category: "SafeWalk",
+              type: "BACK_ON_TRACK",
+              message: "ผู้ใช้กลับเข้าสู่เส้นทางปลอดภัยแล้ว",
+              priority: "NORMAL",
+              relatedId: activeSessionId
+            });
           }
         }
 
@@ -1266,6 +1765,13 @@
 
     function triggerSOS() {
       startContinuousGPSTracking("ขอความช่วยเหลือฉุกเฉิน (GPS สด)", 'SOS');
+      createNotification({
+        category: "SOS",
+        type: "TRIGGER_SOS",
+        message: "มีการแจ้งเหตุฉุกเฉิน ขอความช่วยเหลือด่วน (GPS Real-time)",
+        priority: "CRITICAL",
+        relatedId: activeSessionId
+      });
     }
 
     function submitReport() {
@@ -1289,6 +1795,13 @@
       saveToLocal('careme_report_data', payload);
       dispatchEvent('SUBMIT_REPORT', payload);
       logEvent('SUBMIT_REPORT', payload);
+      createNotification({
+        category: "Report",
+        type: "SUBMIT_REPORT",
+        message: `มีรายงานใหม่: ${cat} ที่ ${loc}`,
+        priority: "NORMAL",
+        relatedId: payload.id
+      });
       alert("✅ ส่งรายงานการแจ้งเหตุไปยังศูนย์ รปภ. เรียบร้อยแล้ว!");
       
       document.getElementById('reportLocation').value = '';
@@ -1303,14 +1816,22 @@
 
     function startSafeWalk() {
       if (destinationLat === null || destinationLng === null) {
-        alert("กรุณาเลือกจุดหมายปลายทางบนแผนิตก่อนเริ่ม Safe Walk");
+        alert("กรุณาเลือกจุดหมายปลายทางบนแผนที่ก่อนเริ่ม Safe Walk");
         return;
       }
+      isCurrentlyDeviated = false;
       document.getElementById('safeWalkControls').classList.add('hidden');
       document.getElementById('activeSafeWalkBox').classList.remove('hidden');
       document.getElementById('activeDestText').innerText = "ปลายทาง: " + destinationName;
 
       startContinuousGPSTracking("กำลังเดินทางไป: " + destinationName, 'SAFEWALK');
+      createNotification({
+        category: "SafeWalk",
+        type: "START_SAFEWALK",
+        message: `เริ่ม SafeWalk ไปยัง ${destinationName}`,
+        priority: "HIGH",
+        relatedId: activeSessionId
+      });
     }
 
     function endSafeWalk() {
@@ -1322,6 +1843,14 @@
       dispatchEvent('END_SAFEWALK', { id: activeSessionId });
       logEvent('SAFEWALK_COMPLETED', { id: activeSessionId });
 
+      createNotification({
+        category: "SafeWalk",
+        type: "END_SAFEWALK",
+        message: `เดินทางถึงปลายทาง ${destinationName} ปลอดภัยแล้ว`,
+        priority: "NORMAL",
+        relatedId: activeSessionId
+      });
+
       document.getElementById('trackingStatusBanner').classList.add('hidden');
       document.getElementById('activeSafeWalkBox').classList.add('hidden');
       document.getElementById('safeWalkControls').classList.remove('hidden');
@@ -1332,6 +1861,12 @@
     function toggleNearbySharing(checkbox) {
       isNearbySharingEnabled = checkbox.checked;
       logEvent('TOGGLE_NEARBY_SHARING', { enabled: isNearbySharingEnabled });
+      createNotification({
+        category: "Group / Family",
+        type: "NEARBY_SHARING",
+        message: isNearbySharingEnabled ? "สมาชิกเปิดใช้งานการแชร์ตำแหน่ง Safe Walk ในรัศมีใกล้เคียง" : "สมาชิกปิดการแชร์ตำแหน่งใกล้เคียง",
+        priority: "NORMAL"
+      });
     }
 
     function switchTab(tab) {

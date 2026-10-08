@@ -298,51 +298,102 @@
       caremeDb.ref('reports').on('child_added', (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          addAlertCard(data, 'REPORT');
+          addAlertCard(data, 'Report');
           if (data.lat && data.lng) {
-            addMapMarker(data.id, data.lat, data.lng, data.title, 'REPORT');
+            addMapMarker(data.id, data.lat, data.lng, data.title || 'รายงานเหตุ', 'Report');
           }
+        }
+      });
+
+      caremeDb.ref('allNotifications').on('child_added', (snapshot) => {
+        const notif = snapshot.val();
+        if (notif) {
+          addAlertCard({
+            id: notif.notificationId,
+            title: notif.title || notif.category,
+            detail: notif.message,
+            user: notif.userId,
+            lat: notif.latitude,
+            lng: notif.longitude,
+            time: notif.time
+          }, notif.category);
         }
       });
     }
 
-    function addAlertCard(data, type) {
+    function addAlertCard(data, category) {
       const container = document.getElementById('alertsContainer');
       const emptyState = document.getElementById('emptyAlertState');
       if (emptyState) emptyState.remove();
 
-      let cardId = `alert-${data.id}`;
+      let cardId = `alert-${data.id || data.notificationId}`;
       if (document.getElementById(cardId)) return;
+
+      const validCategories = ["SafeWalk", "SOS", "Group / Family", "Danger Area", "GPS", "Report"];
+      let finalCategory = validCategories.includes(category) ? category : (category === 'REPORT' ? 'Report' : 'SOS');
+
+      const isSOS = finalCategory === 'SOS';
+      let badgeClass = "bg-blue-600 text-white";
+      let borderClass = "border-slate-600 bg-slate-700/50";
+      let icon = "📌";
+
+      if (finalCategory === 'SOS') {
+        badgeClass = "bg-red-600 text-white animate-pulse font-bold";
+        borderClass = "border-red-500/60 bg-red-950/40 shadow-lg shadow-red-900/30";
+        icon = "🚨";
+      } else if (finalCategory === 'SafeWalk') {
+        badgeClass = "bg-indigo-600 text-white font-bold";
+        borderClass = "border-indigo-500/50 bg-indigo-950/30";
+        icon = "🚶";
+      } else if (finalCategory === 'Danger Area') {
+        badgeClass = "bg-amber-600 text-white font-bold";
+        borderClass = "border-amber-500/50 bg-amber-950/30";
+        icon = "⚠️";
+      } else if (finalCategory === 'Report') {
+        badgeClass = "bg-blue-600 text-white font-bold";
+        borderClass = "border-blue-500/50 bg-slate-800/80";
+        icon = "📝";
+      } else if (finalCategory === 'GPS') {
+        badgeClass = "bg-sky-600 text-white font-bold";
+        borderClass = "border-sky-500/50 bg-sky-950/30";
+        icon = "📡";
+      } else if (finalCategory === 'Group / Family') {
+        badgeClass = "bg-teal-600 text-white font-bold";
+        borderClass = "border-teal-500/50 bg-teal-950/30";
+        icon = "👥";
+      }
 
       const div = document.createElement('div');
       div.id = cardId;
-      div.className = type === 'SOS' 
-        ? "bg-red-950/40 border border-red-500/50 rounded-xl p-3 space-y-2 shadow animate-pulse" 
-        : "bg-slate-700/50 border border-slate-600 rounded-xl p-3 space-y-2 shadow";
+      div.className = `${borderClass} border rounded-2xl p-3.5 space-y-2 shadow transition hover:border-slate-400`;
 
       let imgHtml = '';
       if (data.image) {
-        imgHtml = `<div class="mt-2"><p class="text-[10px] text-slate-400 mb-1">ภาพถ่ายแนบจากผู้แจ้งเหตุ:</p><img src="${data.image}" class="max-h-40 rounded-lg border border-slate-600 object-cover w-full"></div>`;
+        imgHtml = `<div class="mt-2"><p class="text-[10px] text-slate-400 mb-1">ภาพถ่ายแนบจากผู้แจ้งเหตุ:</p><img src="${data.image}" class="max-h-40 rounded-xl border border-slate-600 object-cover w-full"></div>`;
       }
+
+      const eventMessage = data.detail || data.message || data.title || 'ไม่มีรายละเอียดเพิ่มเติม';
 
       div.innerHTML = `
         <div class="flex justify-between items-start">
-          <span class="${type === 'SOS' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'} text-[10px] font-bold px-2 py-0.5 rounded-md">
-            ${type === 'SOS' ? '🚨 SOS ฉุกเฉิน' : '📌 แจ้งเหตุ'}
-          </span>
-          <span class="text-[10px] text-slate-400">${data.time || 'เมื่อครู่'}</span>
+          <div class="flex items-center space-x-1.5">
+            <span class="${badgeClass} text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide">
+              ${icon} ${finalCategory}
+            </span>
+            ${isSOS ? '<span class="bg-red-500/20 text-red-300 border border-red-500/40 text-[9px] font-bold px-1.5 py-0.5 rounded">CRITICAL</span>' : ''}
+          </div>
+          <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${data.time || 'เมื่อครู่'}</span>
         </div>
-        <h3 class="font-bold text-xs text-white">${data.title}</h3>
-        <p class="text-[11px] text-slate-300"><i class="fa-solid fa-user text-slate-400 mr-1"></i> ${data.user || 'นักศึกษา มข.'}</p>
-        ${data.location ? `<p class="text-[11px] text-slate-300"><i class="fa-solid fa-location-dot text-slate-400 mr-1"></i> ${data.location}</p>` : ''}
-        ${data.detail ? `<p class="text-[11px] text-slate-400 bg-slate-800/80 p-2 rounded-lg mt-1">${data.detail}</p>` : ''}
+        <p class="text-xs ${isSOS ? 'text-white font-bold' : 'text-slate-200 font-medium'} leading-snug">${eventMessage}</p>
+        <p class="text-[11px] text-slate-400"><i class="fa-solid fa-user text-slate-500 mr-1"></i> ${data.user || 'นักศึกษา มข.'}</p>
+        ${data.location ? `<p class="text-[11px] text-slate-400"><i class="fa-solid fa-location-dot text-slate-500 mr-1"></i> ${data.location}</p>` : ''}
         ${imgHtml}
         <div class="grid grid-cols-2 gap-2 pt-2">
-          <button onclick="focusMap(${data.lat}, ${data.lng}, '${data.title}')" class="w-full bg-slate-800 hover:bg-slate-900 border border-slate-600 text-slate-200 text-[11px] py-1.5 rounded-lg font-bold transition flex items-center justify-center space-x-1">
+          <button onclick="focusMap(${data.lat || 16.4746}, ${data.lng || 102.8234}, '${finalCategory}')" class="w-full bg-slate-800 hover:bg-slate-900 border border-slate-600 text-slate-200 text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1">
             <i class="fa-solid fa-crosshairs text-sky-400"></i>
             <span>ปักหมุด</span>
           </button>
-          <a href="tel:0817080088" onclick="logAdminCallback('${data.user || 'นักศึกษา'}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] py-1.5 rounded-lg font-bold transition flex items-center justify-center space-x-1">
+          <a href="tel:0817080088" onclick="logAdminCallback('${data.user || 'นักศึกษา'}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
             <i class="fa-solid fa-phone-volume"></i>
             <span>โทรกลับ User</span>
           </a>
@@ -351,7 +402,7 @@
 
       container.prepend(div);
       if (data.lat && data.lng) {
-        addMapMarker(data.id, data.lat, data.lng, data.title, type);
+        addMapMarker(data.id || cardId, data.lat, data.lng, finalCategory + ': ' + eventMessage, finalCategory);
       }
     }
 
@@ -365,13 +416,19 @@
       });
     }
 
-    function addMapMarker(id, lat, lng, title, type) {
+    function addMapMarker(id, lat, lng, title, category) {
       if (markers[id]) {
         markers[id].setLatLng([lat, lng]);
         return;
       }
 
-      const iconHtml = type === 'SOS' ? '🚨' : '📌';
+      let iconHtml = '📌';
+      if (category === 'SOS') iconHtml = '🚨';
+      else if (category === 'SafeWalk') iconHtml = '🚶';
+      else if (category === 'Danger Area') iconHtml = '⚠️';
+      else if (category === 'GPS') iconHtml = '📡';
+      else if (category === 'Group / Family') iconHtml = '👥';
+
       const customIcon = L.divIcon({
         html: `<div class="bg-white border-2 border-slate-900 rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-lg">${iconHtml}</div>`,
         className: 'custom-admin-icon',
@@ -379,7 +436,7 @@
       });
 
       const m = L.marker([lat, lng], { icon: customIcon }).addTo(adminMap);
-      m.bindPopup(`<b>${title}</b><br>ประเภท: ${type}`);
+      m.bindPopup(`<b>${category || 'เหตุการณ์'}</b><br>${title}`);
       markers[id] = m;
     }
 
@@ -394,6 +451,7 @@
       if (confirm("คุณต้องการล้างประวัติการแจ้งเตือนทั้งหมดในระบบใช่หรือไม่?")) {
         caremeDb.ref('sos').remove();
         caremeDb.ref('reports').remove();
+        caremeDb.ref('allNotifications').remove();
         localStorage.removeItem('careme_sos_data');
         localStorage.removeItem('careme_report_data');
         Object.values(markers).forEach(m => adminMap.removeLayer(m));
@@ -405,10 +463,14 @@
     channel.onmessage = (event) => {
       if (!verifyAdminAccess()) return;
       const { type, payload } = event.data;
-      if (type === 'TRIGGER_SOS' || type === 'START_SAFEWALK') {
+      if (type === 'NEW_NOTIFICATION') {
+        addAlertCard(payload, payload.category);
+      } else if (type === 'TRIGGER_SOS') {
         addAlertCard(payload, 'SOS');
+      } else if (type === 'START_SAFEWALK') {
+        addAlertCard(payload, 'SafeWalk');
       } else if (type === 'SUBMIT_REPORT') {
-        addAlertCard(payload, 'REPORT');
+        addAlertCard(payload, 'Report');
       } else if (type === 'GPS_UPDATE') {
         if (markers[payload.id]) {
           markers[payload.id].setLatLng([payload.lat, payload.lng]);
