@@ -42,6 +42,7 @@
       100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
     #fullMap { height: 380px; width: 100%; border-radius: 1rem; }
+    #safeWalkMap { height: 300px; width: 100%; border-radius: 1rem; }
   </style>
 </head>
 <body class="flex justify-center items-center min-h-screen bg-slate-200 p-0 sm:p-4">
@@ -91,20 +92,20 @@
       <!-- ADMIN LOGIN FORM -->
       <div id="adminLoginForm" class="space-y-4 hidden">
         <p class="text-[11px] text-slate-600 bg-amber-50 border border-amber-200 p-2.5 rounded-xl">
-          🔒 สำหรับเจ้าหน้าที่ศูนย์ปฏิบัติการ รปภ. มข. (กรุณาใช้ Username และ Password ที่ได้รับอนุญาต)
+          🔒 สำหรับเจ้าหน้าที่ศูนย์ปฏิบัติการ รปภ. มข. (Testing: <b>admin</b> / <b>admin1234</b>)
         </p>
         <div class="space-y-3">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อผู้ใช้งาน (Username)</label>
-            <input type="text" id="adminUsernameInput" placeholder="admin หรือ security01" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-kkuNavy" />
+            <input type="text" id="adminUsernameInput" placeholder="admin" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-kkuNavy" />
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
-            <input type="password" id="adminPasswordInput" placeholder="••••••••" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-kkuNavy" />
+            <input type="password" id="adminPasswordInput" placeholder="admin1234" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-kkuNavy" />
           </div>
           <button onclick="handleAdminLogin()" class="w-full bg-slate-900 hover:bg-black text-white font-bold text-xs py-3.5 rounded-xl shadow-md transition flex items-center justify-center space-x-2">
             <i class="fa-solid fa-shield-halved"></i>
-            <span>เข้าสู่ระบบ (Command Center)</span>
+            <span>เข้าสู่ระบบ (หน้า User ปกติ พร้อมสิทธิ์ Admin)</span>
           </button>
         </div>
       </div>
@@ -168,6 +169,7 @@
 
       <!-- TAB 1: HOME -->
       <div id="tabHome" class="space-y-4">
+        <!-- SOS CARD BUTTON -->
         <div id="sosCard" class="bg-gradient-to-br from-red-500 to-red-600 rounded-3xl p-5 text-white shadow-lg shadow-red-500/25 relative overflow-hidden select-none">
           <div class="relative z-10 flex flex-col items-center text-center">
             <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-3 backdrop-blur-sm border border-white/30">
@@ -182,6 +184,7 @@
           </div>
         </div>
 
+        <!-- QUICK ACTIONS MENU -->
         <div>
           <h3 class="font-bold text-kkuNavy text-sm mb-3">เมนูด่วน</h3>
           <div class="grid grid-cols-3 gap-3">
@@ -206,6 +209,7 @@
           </div>
         </div>
 
+        <!-- MINI MAP PREVIEW -->
         <div class="bg-white rounded-2xl border border-slate-200 p-3 shadow-sm">
           <div class="flex justify-between items-center mb-2">
             <span class="text-xs font-bold text-kkuNavy">📍 ตำแหน่งปัจจุบันของคุณ</span>
@@ -306,44 +310,64 @@
         </div>
       </div>
 
-      <!-- TAB 4: SAFE WALK -->
+      <!-- TAB 4: SAFE WALK (WITH OSRM ROUTING, LEAFLET MAP, SAVED PLACES) -->
       <div id="tabSafewalk" class="hidden space-y-4">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
           <div class="flex items-center space-x-2 text-indigo-600 font-bold text-base border-b pb-2">
             <i class="fa-solid fa-person-walking-arrow-right text-xl"></i>
-            <span>บริการ Safe Walk (เดินกลับอุ่นใจ)</span>
+            <span>บริการ Safe Walk (เดินกลับอุ่นใจ - OSRM Routing)</span>
           </div>
-          <p class="text-xs text-slate-600">ระบุปลายทาง ระบบจะส่งพิกัด GPS เคลื่อนที่แบบ Live พร้อมความเร็ว, ETA และตรวจจับออกนอกเส้นทางอัตโนมัติ</p>
+          <p class="text-xs text-slate-600">คลิกบนแผนที่, ค้นหาสถานที่, หรือลากหมุดปลายทาง ระบบจะคำนวณเส้นทางตามถนนจริง (OSRM) พร้อมระยะทางและ ETA แม่นยำ</p>
           
           <div class="space-y-3 pt-1">
+            <!-- SEARCH LOCATION -->
             <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">จุดหมายปลายทาง</label>
-              <select id="safeWalkDest" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium text-slate-800">
-                <option value="หอพักนักศึกษาชาย 2 (มข.)">หอพักนักศึกษาชาย 2 (มข.)</option>
-                <option value="หอพักหญิง 8 หลัง (มข.)">หอพักหญิง 8 หลัง (มข.)</option>
-                <option value="ลานจอดรถหน้า Complex มข.">ลานจอดรถหน้า Complex มข.</option>
-                <option value="อาคารเรียนรวม คณะวิศวกรรมศาสตร์">อาคารเรียนรวม คณะวิศวกรรมศาสตร์</option>
-                <option value="ห้องสมุดกาญจนาภิเษก มข.">ห้องสมุดกาญจนาภิเษก มข.</option>
-                <option value="โรงอาหารกังสดาล">โรงอาหารกังสดาล</option>
-              </select>
+              <label class="block text-xs font-bold text-slate-700 mb-1">ค้นหาสถานที่ปลายทาง / พิมพ์ชื่อสถานที่</label>
+              <div class="flex space-x-2">
+                <input type="text" id="searchDestInput" placeholder="เช่น หอพัก 8 หลัง, ห้องสมุด มข., คณะวิศวะ" class="flex-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium text-slate-800" />
+                <button onclick="searchLocation()" class="bg-kkuBlue text-white px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-blue-600 transition">
+                  <i class="fa-solid fa-magnifying-glass"></i> ค้นหา
+                </button>
+              </div>
+            </div>
+
+            <!-- SAFE WALK LEAFLET MAP (CLICKABLE & DRAGGABLE) -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">📍 แผนที่เลือกจุดหมาย (คลิกบนแผนที่หรือลากหมุดสีน้ำเงินเพื่อเปลี่ยนที่)</label>
+              <div id="safeWalkMap" class="shadow-inner border border-slate-200"></div>
+            </div>
+
+            <!-- ROUTE INFO CARD -->
+            <div id="routeInfoCard" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2 text-xs">
+              <div class="flex justify-between items-center font-bold text-kkuNavy">
+                <span>📍 ปลายทาง: <span id="routeDestName" class="text-indigo-600">-</span></span>
+                <button onclick="saveCurrentDestination()" class="text-[10px] bg-amber-100 text-amber-800 px-2 py-1 rounded-lg font-bold hover:bg-amber-200">
+                  <i class="fa-solid fa-bookmark"></i> บันทึกสถานที่นี้
+                </button>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200">
+                <div>📏 ระยะทางจริงตามถนน: <span id="routeDistText" class="font-bold text-kkuBlue">- กม.</span></div>
+                <div>⏱️ เวลาเดินทาง (ETA): <span id="routeEtaText" class="font-bold text-emerald-600">- นาที</span></div>
+              </div>
+              <div>🚶 วิธีเดินทาง: เดินเท้าตามเส้นทางปลอดภัย มข.</div>
             </div>
 
             <div id="safeWalkControls" class="pt-2">
-              <button onclick="startSafeWalk()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2">
+              <button onclick="startSafeWalk()" id="btnStartSafeWalk" disabled class="w-full bg-slate-300 text-slate-500 font-bold text-xs py-3 rounded-xl shadow-none transition flex items-center justify-center space-x-2 cursor-not-allowed">
                 <i class="fa-solid fa-play"></i>
-                <span>เริ่มเดิน Safe Walk (ติดตาม GPS, Speed & ETA)</span>
+                <span>เริ่มเดิน Safe Walk (กรุณาเลือกจุดหมายบนแผนที่ก่อน)</span>
               </button>
             </div>
 
             <div id="activeSafeWalkBox" class="hidden bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-center space-y-2">
               <div class="text-indigo-700 font-bold text-xs flex items-center justify-center space-x-1">
                 <i class="fa-solid fa-person-walking text-base animate-pulse"></i>
-                <span>กำลังดำเนินการ Safe Walk...</span>
+                <span>กำลังดำเนินการ Safe Walk Live Tracking...</span>
               </div>
               <p class="text-xs text-indigo-900 font-bold" id="activeDestText">ปลายทาง: -</p>
               <div class="grid grid-cols-2 gap-2 text-[11px] text-indigo-800 bg-white p-2.5 rounded-xl border border-indigo-100">
                 <div>ความเร็ว: <span id="swSpeed" class="font-bold">0.0</span> กม./ชม.</div>
-                <div>ETA: <span id="swEta" class="font-bold">-</span></div>
+                <div>ระยะทางคงเหลือ: <span id="swDistRemaining" class="font-bold">-</span></div>
               </div>
               <button onclick="endSafeWalk()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl shadow-md transition">
                 ✅ ถึงที่หมายแล้ว (ปิด Safe Walk)
@@ -352,6 +376,26 @@
           </div>
         </div>
 
+        <!-- SAVED PLACES SECTION (สถานที่ที่บันทึกไว้) -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+          <div class="flex justify-between items-center border-b pb-2">
+            <div class="flex items-center space-x-2 text-kkuNavy font-bold text-base">
+              <i class="fa-solid fa-bookmark text-xl text-amber-500"></i>
+              <span>⭐ สถานที่ของฉัน (Saved Places)</span>
+            </div>
+            <button onclick="openAddPlaceModal()" class="text-[11px] bg-kkuBlue text-white px-2.5 py-1 rounded-lg font-bold hover:bg-blue-600">
+              <i class="fa-solid fa-plus"></i> เพิ่มสถานที่
+            </button>
+          </div>
+
+          <div id="savedPlacesContainer" class="space-y-2 max-h-56 overflow-y-auto no-scrollbar">
+            <div class="text-center text-slate-400 py-6 text-xs">
+              ยังไม่มีสถานที่บันทึกไว้ (กดปุ่ม "บันทึกสถานที่นี้" เมื่อเลือกจุดหมาย หรือเพิ่มด้วยตนเอง)
+            </div>
+          </div>
+        </div>
+
+        <!-- GROUP / FAMILY & NEARBY SHARING -->
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
           <div class="flex items-center space-x-2 text-kkuNavy font-bold text-base border-b pb-2">
             <i class="fa-solid fa-users text-xl text-kkuBlue"></i>
@@ -421,10 +465,11 @@
             </a>
           </div>
 
+          <!-- ADMIN OPERATION / COMMAND CENTER BUTTON (SHOWN ONLY TO ADMINS) -->
           <div id="adminCommandCenterLink" class="pt-2 hidden">
             <a href="admin.html" target="_blank" class="w-full bg-slate-900 hover:bg-black text-white font-bold text-xs py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2">
               <i class="fa-solid fa-desktop text-sky-400"></i>
-              <span>เปิดระบบ Command Center (Admin Section)</span>
+              <span>เปิดระบบ Operation / Command Center (สำหรับเจ้าหน้าที่)</span>
               <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-400"></i>
             </a>
           </div>
@@ -480,6 +525,10 @@
     let currentLng = 102.8234;
     let prevLat = 16.4746;
     let prevLng = 102.8234;
+    let destinationLat = null;
+    let destinationLng = null;
+    let destinationName = "จุดหมายปลายทางที่เลือก";
+
     let gpsInterval = null;
     let checkpointInterval = null;
     let activeSessionId = null;
@@ -488,10 +537,13 @@
     let selectedImageData = null;
     let currentSpeedKmh = 0.0;
     let isNearbySharingEnabled = true;
+    let currentUserSession = null;
     const channel = new BroadcastChannel('careme_kku_channel');
 
-    let miniMapInstance, fullMapInstance;
-    let userMarkerMini, userMarkerFull;
+    let miniMapInstance, fullMapInstance, safeWalkMapInstance;
+    let userMarkerMini, userMarkerFull, userMarkerSafeWalk;
+    let destinationMarkerSafeWalk = null;
+    let routePolylineSafeWalk = null;
     let safePointMarkers = [];
 
     const safetyLocations = [
@@ -500,7 +552,9 @@
       { name: "กล้อง AI CCTV ทางเดินวิศวะ", type: "CCTV", lat: 16.4725, lng: 102.8260 },
       { name: "กล้อง AI CCTV สี่แยกตึกอธิการบดี", type: "CCTV", lat: 16.4755, lng: 102.8210 },
       { name: "ป้อม รปภ. ประตูทางเข้า มข. 1", type: "GUARD", lat: 16.4680, lng: 102.8290 },
-      { name: "ป้อม รปภ. หน้าหอพักนักศึกษาชาย", type: "GUARD", lat: 16.4780, lng: 102.8220 }
+      { name: "ป้อม รปภ. หน้าหอพักนักศึกษาชาย", type: "GUARD", lat: 16.4780, lng: 102.8220 },
+      { name: "ห้องสมุดกาญจนาภิเษก มข.", type: "PLACE", lat: 16.4710, lng: 102.8250 },
+      { name: "อาคารเรียนรวม คณะวิศวกรรมศาสตร์", type: "PLACE", lat: 16.4730, lng: 102.8225 }
     ];
 
     async function hashPassword(password) {
@@ -515,7 +569,7 @@
       const adminRef = caremeDb.ref('admins/admin');
       adminRef.once('value', async (snapshot) => {
         if (!snapshot.exists()) {
-          const defaultHash = await hashPassword('kku@security2026');
+          const defaultHash = await hashPassword('admin1234');
           adminRef.set({ username: 'admin', passwordHash: defaultHash, role: 'admin' });
         }
       });
@@ -552,7 +606,6 @@
     async function handleUserLogin() {
       const email = document.getElementById('userEmailInput').value.trim();
       const password = document.getElementById('userPasswordInput').value;
-      const errEl = document.getElementById('loginErrorMsg');
 
       if (!email || !password) {
         showLoginError("กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน");
@@ -565,16 +618,17 @@
         return;
       }
 
-      sessionStorage.setItem('careme_auth', JSON.stringify({ role: 'user', email: email, loginTime: Date.now() }));
+      currentUserSession = { role: 'user', id: email, email: email };
+      sessionStorage.setItem('careme_auth', JSON.stringify(currentUserSession));
       logEvent('USER_LOGIN', { email: email });
       document.getElementById('loginOverlay').classList.add('hidden');
+      document.getElementById('adminCommandCenterLink').classList.add('hidden');
       initAppAfterLogin();
     }
 
     async function handleAdminLogin() {
       const username = document.getElementById('adminUsernameInput').value.trim();
       const password = document.getElementById('adminPasswordInput').value;
-      const errEl = document.getElementById('loginErrorMsg');
 
       if (!username || !password) {
         showLoginError("กรุณากรอก Username และ Password");
@@ -586,9 +640,11 @@
       caremeDb.ref('admins/' + username).once('value', (snapshot) => {
         const adminData = snapshot.val();
         if (adminData && adminData.passwordHash === hashedPassword && adminData.role === 'admin') {
-          sessionStorage.setItem('careme_auth', JSON.stringify({ role: 'admin', username: username, loginTime: Date.now() }));
+          currentUserSession = { role: 'admin', id: username, username: username };
+          sessionStorage.setItem('careme_auth', JSON.stringify(currentUserSession));
           logEvent('ADMIN_LOGIN', { username: username });
           document.getElementById('loginOverlay').classList.add('hidden');
+          document.getElementById('adminCommandCenterLink').classList.remove('hidden');
           initAppAfterLogin();
         } else {
           showLoginError("ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าถึงระบบ Admin");
@@ -608,9 +664,11 @@
         document.getElementById('loginOverlay').classList.remove('hidden');
       } else {
         try {
-          const auth = JSON.parse(authDataStr);
-          if (auth.role === 'admin') {
+          currentUserSession = JSON.parse(authDataStr);
+          if (currentUserSession.role === 'admin') {
             document.getElementById('adminCommandCenterLink').classList.remove('hidden');
+          } else {
+            document.getElementById('adminCommandCenterLink').classList.add('hidden');
           }
           initAppAfterLogin();
         } catch(e) {
@@ -632,6 +690,213 @@
       initMiniMap();
       checkDeviceGPS();
       initAdminCredentials();
+      loadSavedPlaces();
+    }
+
+    function initSafeWalkMap() {
+      if (!safeWalkMapInstance) {
+        safeWalkMapInstance = L.map('safeWalkMap').setView([currentLat, currentLng], 15);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19, attribution: '&copy; Esri'
+        }).addTo(safeWalkMapInstance);
+
+        userMarkerSafeWalk = L.marker([currentLat, currentLng]).addTo(safeWalkMapInstance).bindPopup("<b>ตำแหน่งปัจจุบันของคุณ</b>").openPopup();
+
+        safeWalkMapInstance.on('click', (e) => {
+          setDestination(e.latlng.lat, e.latlng.lng, "พิกัด: " + e.latlng.lat.toFixed(4) + ", " + e.latlng.lng.toFixed(4));
+        });
+      } else {
+        safeWalkMapInstance.invalidateSize();
+      }
+    }
+
+    function setDestination(lat, lng, name) {
+      destinationLat = lat;
+      destinationLng = lng;
+      destinationName = name;
+
+      if (destinationMarkerSafeWalk) {
+        safeWalkMapInstance.removeLayer(destinationMarkerSafeWalk);
+      }
+
+      const destIcon = L.divIcon({
+        html: `<div class="bg-red-600 text-white border-2 border-white rounded-full w-8 h-8 flex items-center justify-center text-xs shadow-lg font-bold">📍</div>`,
+        className: 'custom-dest-icon',
+        iconSize: [32, 32]
+      });
+
+      destinationMarkerSafeWalk = L.marker([lat, lng], { draggable: true, icon: destIcon }).addTo(safeWalkMapInstance);
+      destinationMarkerSafeWalk.bindPopup(`<b>${name}</b><br>ลากหมุดเพื่อเปลี่ยนตำแหน่ง`).openPopup();
+
+      destinationMarkerSafeWalk.on('dragend', (event) => {
+        const pos = event.target.getLatLng();
+        setDestination(pos.lat, pos.lng, "พิกัดปักหมุดใหม่");
+      });
+
+      calculateOSRMRoute(currentLat, currentLng, lat, lng, name);
+    }
+
+    async function calculateOSRMRoute(fromLat, fromLng, toLat, toLng, name) {
+      try {
+        const url = `https://router.project-osrm.org/route/v1/walking/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          const distKm = (route.distance / 1000).toFixed(2);
+          const etaMins = Math.max(1, Math.round(route.duration / 60));
+
+          document.getElementById('routeDestName').innerText = name;
+          document.getElementById('routeDistText').innerText = distKm + " กม.";
+          document.getElementById('routeEtaText').innerText = etaMins + " นาที";
+          document.getElementById('routeInfoCard').classList.remove('hidden');
+
+          const startBtn = document.getElementById('btnStartSafeWalk');
+          startBtn.disabled = false;
+          startBtn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2";
+          startBtn.innerHTML = '<i class="fa-solid fa-play"></i><span>เริ่มเดิน Safe Walk (ตามเส้นทางถนนจริง)</span>';
+
+          if (routePolylineSafeWalk) {
+            safeWalkMapInstance.removeLayer(routePolylineSafeWalk);
+          }
+
+          const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+          routePolylineSafeWalk = L.polyline(coords, { color: '#3B82F6', weight: 5, opacity: 0.8 }).addTo(safeWalkMapInstance);
+          safeWalkMapInstance.fitBounds(routePolylineSafeWalk.getBounds(), { padding: [50, 50] });
+        } else {
+          fallbackStraightLineRoute(fromLat, fromLng, toLat, toLng, name);
+        }
+      } catch(e) {
+        console.warn("OSRM Routing error, using fallback distance", e);
+        fallbackStraightLineRoute(fromLat, fromLng, toLat, toLng, name);
+      }
+    }
+
+    function fallbackStraightLineRoute(fromLat, fromLng, toLat, toLng, name) {
+      const distKm = getDistanceFromLatLonInKm(fromLat, fromLng, toLat, toLng);
+      const etaMins = Math.max(1, Math.round((distKm / 4.8) * 60));
+
+      document.getElementById('routeDestName').innerText = name;
+      document.getElementById('routeDistText').innerText = distKm.toFixed(2) + " กม. (เส้นตรง)";
+      document.getElementById('routeEtaText').innerText = etaMins + " นาที";
+      document.getElementById('routeInfoCard').classList.remove('hidden');
+
+      const startBtn = document.getElementById('btnStartSafeWalk');
+      startBtn.disabled = false;
+      startBtn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2";
+      startBtn.innerHTML = '<i class="fa-solid fa-play"></i><span>เริ่มเดิน Safe Walk</span>';
+
+      if (routePolylineSafeWalk) safeWalkMapInstance.removeLayer(routePolylineSafeWalk);
+      routePolylineSafeWalk = L.polyline([[fromLat, fromLng], [toLat, toLng]], { color: '#3B82F6', weight: 4, dashArray: '5, 5' }).addTo(safeWalkMapInstance);
+    }
+
+    async function searchLocation() {
+      const q = document.getElementById('searchDestInput').value.trim();
+      if (!q) {
+        alert("กรุณากรอกชื่อสถานที่ที่ต้องการค้นหา");
+        return;
+      }
+
+      const foundPreset = safetyLocations.find(l => l.name.toLowerCase().includes(q.toLowerCase()));
+      if (foundPreset) {
+        safeWalkMapInstance.setView([foundPreset.lat, foundPreset.lng], 16);
+        setDestination(foundPreset.lat, foundPreset.lng, foundPreset.name);
+        return;
+      }
+
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ' ขอนแก่น')}`);
+        const results = await res.json();
+        if (results && results.length > 0) {
+          const place = results[0];
+          const lat = parseFloat(place.lat);
+          const lng = parseFloat(place.lon);
+          safeWalkMapInstance.setView([lat, lng], 16);
+          setDestination(lat, lng, place.display_name);
+        } else {
+          alert("ไม่พบสถานที่ดังกล่าวในระบบ กรุณาลองใหม่อีกครั้ง");
+        }
+      } catch(e) {
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อค้นหาสถานที่");
+      }
+    }
+
+    function saveCurrentDestination() {
+      if (destinationLat === null || destinationLng === null) {
+        alert("กรุณาเลือกจุดหมายบนแผนที่ก่อนบันทึก");
+        return;
+      }
+
+      const placeName = prompt("ตั้งชื่อสถานที่ที่คุณต้องการบันทึก:", destinationName || "สถานที่โปรด");
+      if (!placeName) return;
+
+      const userId = currentUserSession ? currentUserSession.id : 'default_user';
+      const placeId = 'place_' + Date.now();
+      const placeData = {
+        placeId: placeId,
+        userId: userId,
+        name: placeName,
+        latitude: destinationLat,
+        longitude: destinationLng,
+        address: destinationName,
+        favorite: true,
+        createdAt: Date.now()
+      };
+
+      caremeDb.ref(`savedPlaces/${userId}/${placeId}`).set(placeData);
+      alert("✅ บันทึกสถานที่ '" + placeName + "' เรียบร้อยแล้ว!");
+      loadSavedPlaces();
+    }
+
+    function loadSavedPlaces() {
+      if (!currentUserSession) return;
+      const userId = currentUserSession.id;
+
+      caremeDb.ref(`savedPlaces/${userId}`).once('value', (snapshot) => {
+        const val = snapshot.val() || {};
+        const places = Object.values(val);
+        const container = document.getElementById('savedPlacesContainer');
+
+        if (places.length === 0) {
+          container.innerHTML = `<div class="text-center text-slate-400 py-6 text-xs">ยังไม่มีสถานที่บันทึกไว้ (กดปุ่ม "บันทึกสถานที่นี้" เมื่อเลือกจุดหมาย)</div>`;
+          return;
+        }
+
+        container.innerHTML = '';
+        places.forEach(p => {
+          const div = document.createElement('div');
+          div.className = "flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 rounded-xl border border-slate-200 transition text-xs";
+          div.innerHTML = `
+            <div onclick="selectSavedPlace(${p.latitude}, ${p.longitude}, '${p.name}')" class="cursor-pointer flex-1">
+              <p class="font-bold text-slate-800"><i class="fa-solid fa-star text-amber-500 mr-1"></i> ${p.name}</p>
+              <p class="text-[10px] text-slate-500 truncate">${p.address || 'พิกัด มข.'}</p>
+            </div>
+            <div class="flex items-center space-x-1">
+              <button onclick="selectSavedPlace(${p.latitude}, ${p.longitude}, '${p.name}')" class="bg-indigo-600 text-white px-2 py-1 rounded-lg text-[10px] font-bold">ไปที่นี่</button>
+              <button onclick="deleteSavedPlace('${p.placeId}')" class="bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px]"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      });
+    }
+
+    function selectSavedPlace(lat, lng, name) {
+      switchTab('safewalk');
+      setTimeout(() => {
+        if (safeWalkMapInstance) {
+          safeWalkMapInstance.setView([lat, lng], 16);
+          setDestination(lat, lng, name);
+        }
+      }, 200);
+    }
+
+    function deleteSavedPlace(placeId) {
+      if (confirm("คุณต้องการลบสถานที่นี้ออกจากรายการที่บันทึกไว้ใช่หรือไม่?") && currentUserSession) {
+        caremeDb.ref(`savedPlaces/${currentUserSession.id}/${placeId}`).remove();
+        loadSavedPlaces();
+      }
     }
 
     function logEvent(eventType, payload) {
@@ -686,6 +951,7 @@
           let iconHtml = '🚨';
           if(loc.type === 'CCTV') iconHtml = '🎥';
           if(loc.type === 'GUARD') iconHtml = '👮';
+          if(loc.type === 'PLACE') iconHtml = '🏛️';
 
           const customIcon = L.divIcon({
             html: `<div class="bg-white border-2 border-slate-700 rounded-full w-7 h-7 flex items-center justify-center text-xs shadow-md">${iconHtml}</div>`,
@@ -694,7 +960,7 @@
           });
 
           const m = L.marker([loc.lat, loc.lng], { icon: customIcon }).addTo(fullMapInstance);
-          m.bindPopup(`<b>${loc.name}</b><br>ประเภท: ${loc.type === 'BOX' ? 'ตู้แดง SOS' : (loc.type==='CCTV'?'กล้อง CCTV':'ป้อม รปภ.')}`);
+          m.bindPopup(`<b>${loc.name}</b>`);
           safePointMarkers.push(m);
         }
       });
@@ -730,6 +996,7 @@
 
             if(userMarkerMini) userMarkerMini.setLatLng([currentLat, currentLng]);
             if(userMarkerFull) userMarkerFull.setLatLng([currentLat, currentLng]);
+            if(userMarkerSafeWalk) userMarkerSafeWalk.setLatLng([currentLat, currentLng]);
           },
           (err) => console.log("ใช้ตำแหน่งจำลอง KKU GPS"),
           { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
@@ -829,7 +1096,7 @@
         id: activeSessionId,
         type: type,
         title: title,
-        user: "นักศึกษา มข.",
+        user: currentUserSession ? (currentUserSession.email || currentUserSession.username) : "นักศึกษา มข.",
         lat: currentLat,
         lng: currentLng,
         speed: 0.0,
@@ -860,19 +1127,24 @@
 
         if(userMarkerMini) userMarkerMini.setLatLng([currentLat, currentLng]);
         if(userMarkerFull) userMarkerFull.setLatLng([currentLat, currentLng]);
+        if(userMarkerSafeWalk) userMarkerSafeWalk.setLatLng([currentLat, currentLng]);
 
         const speedDisplay = currentSpeedKmh.toFixed(1);
         document.getElementById('trackingCoords').innerText = `พิกัดสด: ${currentLat.toFixed(5)}, ${currentLng.toFixed(5)} | ความเร็ว: ${speedDisplay} กม./ชม.`;
         
-        if (document.getElementById('swSpeed')) {
-          document.getElementById('swSpeed').innerText = speedDisplay;
-          const etaMins = currentSpeedKmh > 1 ? Math.max(1, Math.round((1.2 / currentSpeedKmh) * 60)) : 15;
-          document.getElementById('swEta').innerText = etaMins + ' นาที';
-        }
+        if (destinationLat !== null && destinationLng !== null) {
+          const distRemainingKm = getDistanceFromLatLonInKm(currentLat, currentLng, destinationLat, destinationLng);
+          if (document.getElementById('swDistRemaining')) {
+            document.getElementById('swDistRemaining').innerText = distRemainingKm.toFixed(2) + " กม.";
+          }
+          if (document.getElementById('swSpeed')) {
+            document.getElementById('swSpeed').innerText = speedDisplay;
+          }
 
-        const distanceFromStart = getDistanceFromLatLonInKm(initialPayload.lat, initialPayload.lng, currentLat, currentLng) * 1000;
-        if (distanceFromStart > 120) {
-          logEvent('ROUTE_DEVIATION', { sessionId: activeSessionId, distance: distanceFromStart });
+          const distanceFromStart = getDistanceFromLatLonInKm(initialPayload.lat, initialPayload.lng, currentLat, currentLng) * 1000;
+          if (distanceFromStart > 120) {
+            logEvent('ROUTE_DEVIATION', { sessionId: activeSessionId, distance: distanceFromStart });
+          }
         }
 
         const livePing = {
@@ -917,7 +1189,7 @@
         id: Date.now(),
         type: 'REPORT',
         title: cat,
-        user: "นักศึกษา มข.",
+        user: currentUserSession ? (currentUserSession.email || currentUserSession.username) : "นักศึกษา มข.",
         location: loc,
         detail: detail,
         image: selectedImageData,
@@ -936,18 +1208,21 @@
       document.getElementById('reportImageInput').value = '';
       selectedImageData = null;
       document.getElementById('imagePreviewContainer').classList.add('hidden');
-      document.getElementById('imagePlaceholder').classList.add('hidden');
+      document.getElementById('imagePlaceholder').classList.remove('hidden');
       
       switchTab('home');
     }
 
     function startSafeWalk() {
-      const dest = document.getElementById('safeWalkDest').value;
+      if (destinationLat === null || destinationLng === null) {
+        alert("กรุณาเลือกจุดหมายปลายทางบนแผนิตก่อนเริ่ม Safe Walk");
+        return;
+      }
       document.getElementById('safeWalkControls').classList.add('hidden');
       document.getElementById('activeSafeWalkBox').classList.remove('hidden');
-      document.getElementById('activeDestText').innerText = "ปลายทาง: " + dest;
+      document.getElementById('activeDestText').innerText = "ปลายทาง: " + destinationName;
 
-      startContinuousGPSTracking("กำลังเดินทางไป: " + dest, 'SAFEWALK');
+      startContinuousGPSTracking("กำลังเดินทางไป: " + destinationName, 'SAFEWALK');
     }
 
     function endSafeWalk() {
@@ -1003,8 +1278,9 @@
       } else if (tab === 'safewalk') {
         document.getElementById('tabSafewalk').classList.remove('hidden');
         document.getElementById('navSafewalk').className = "flex flex-col items-center text-kkuBlue";
-        document.getElementById('headerTitle').innerText = "บริการ Safe Walk & Group";
-        document.getElementById('headerSubTitle').innerText = "เฝ้าระวังการเดินทางและครอบครัว";
+        document.getElementById('headerTitle').innerText = "บริการ Safe Walk & OSRM Routing";
+        document.getElementById('headerSubTitle').innerText = "นำทางปลอดภัยตามถนนจริง มข.";
+        setTimeout(() => { initSafeWalkMap(); safeWalkMapInstance.invalidateSize(); }, 100);
       } else if (tab === 'security') {
         document.getElementById('tabSecurity').classList.remove('hidden');
         document.getElementById('navSecurity').className = "flex flex-col items-center text-kkuBlue";
