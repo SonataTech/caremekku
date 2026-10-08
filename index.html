@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#d32f2f">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CareMe KKU">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CareMe KKU - แพลตฟอร์มความปลอดภัย มข.</title>
@@ -51,9 +58,9 @@
           <span class="font-bold text-lg tracking-wide text-white">CareMe KKU</span>
         </div>
         <div class="flex items-center space-x-2">
-          <button onclick="toggleNetSim()" id="networkBadge" class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1 hover:bg-emerald-500/30">
-            <span id="netDot">🟢</span> <span id="netStatusText">ออนไลน์</span>
-          </button>
+          <div id="networkBadge" class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1">
+        <span id="netDot">🟢</span> <span id="netStatusText">ออนไลน์</span>
+        </div>
         </div>
       </div>
       <div>
@@ -773,5 +780,37 @@
       }
     }
   </script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => console.log('Service Worker Registered!', reg))
+        .catch((err) => console.log('Service Worker Failed!', err));
+    });
+  }
+function updateNetworkStatus() {
+  const isOnline = navigator.onLine;
+  const dot = document.getElementById('netDot');
+  const text = document.getElementById('netStatusText');
+  const badge = document.getElementById('networkBadge');
+
+  if (dot && text && badge) {
+    if (isOnline) {
+      dot.textContent = '🟢';
+      text.textContent = 'ออนไลน์';
+      badge.className = "text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1";
+    } else {
+      dot.textContent = '🔴';
+      text.textContent = 'ออฟไลน์';
+      badge.className = "text-[10px] bg-red-500/20 text-red-300 border border-red-400/30 px-2.5 py-1 rounded-full font-medium transition flex items-center space-x-1";
+    }
+  }
+}
+window.addEventListener('online', updateNetworkStatus);
+window.addEventListener('offline', updateNetworkStatus);
+window.addEventListener('load', updateNetworkStatus);
+document.addEventListener('DOMContentLoaded', updateNetworkStatus);
+</script>
 </body>
 </html>
+
