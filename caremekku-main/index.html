@@ -617,20 +617,35 @@
       }
     }
 
-    function updateAdminAccessUI() {
-      const authDataStr = sessionStorage.getItem('careme_auth');
-      let isAdmin = false;
-      let auth = null;
-      if (authDataStr) {
-        try {
-          auth = JSON.parse(authDataStr);
-          if (auth && auth.role === 'admin') {
-            isAdmin = true;
-          }
-        } catch(e) {
-          isAdmin = false;
-        }
+    function getCaremeAuth() {
+      const authDataStr = sessionStorage.getItem('careme_auth') || localStorage.getItem('careme_auth');
+      if (!authDataStr) return null;
+      try {
+        const auth = JSON.parse(authDataStr);
+        sessionStorage.setItem('careme_auth', JSON.stringify(auth));
+        localStorage.setItem('careme_auth', JSON.stringify(auth));
+        return auth;
+      } catch(e) {
+        return null;
       }
+    }
+
+    function setCaremeAuth(session) {
+      currentUserSession = session;
+      const str = JSON.stringify(session);
+      sessionStorage.setItem('careme_auth', str);
+      localStorage.setItem('careme_auth', str);
+    }
+
+    function clearCaremeAuth() {
+      currentUserSession = null;
+      sessionStorage.removeItem('careme_auth');
+      localStorage.removeItem('careme_auth');
+    }
+
+    function updateAdminAccessUI() {
+      const auth = getCaremeAuth();
+      const isAdmin = !!(auth && auth.role === 'admin');
 
       const adminHomeBanner = document.getElementById('adminHomeBanner');
       const adminCommandCenterLink = document.getElementById('adminCommandCenterLink');
@@ -649,22 +664,17 @@
     }
 
     function openAdminOperation() {
-      const authDataStr = sessionStorage.getItem('careme_auth');
-      if (!authDataStr) {
+      const auth = getCaremeAuth();
+      if (!auth) {
         alert("⛔ ปฏิเสธการเข้าถึง: กรุณาเข้าสู่ระบบด้วยบัญชีผู้ดูแลระบบ (Admin) ก่อน");
         return;
       }
-      try {
-        const auth = JSON.parse(authDataStr);
-        if (!auth || auth.role !== 'admin') {
-          alert("⛔ ปฏิเสธการเข้าถึง: คุณไม่มีสิทธิ์เข้าสู่ส่วน Operation / Command Center");
-          return;
-        }
-        // Verified Admin -> navigate to Operation Center
-        window.location.href = "admin.html";
-      } catch(e) {
-        alert("⛔ ปฏิเสธการเข้าถึง: ข้อมูลสิทธิ์ผู้ใช้งานไม่ถูกต้อง");
+      if (auth.role !== 'admin') {
+        alert("⛔ ปฏิเสธการเข้าถึง: คุณไม่มีสิทธิ์เข้าสู่ส่วน Operation / Command Center");
+        return;
       }
+      // Verified Admin -> navigate to Operation Center
+      window.location.href = "admin.html";
     }
 
     async function handleUserLogin() {
@@ -682,8 +692,7 @@
         return;
       }
 
-      currentUserSession = { role: 'user', id: email, email: email };
-      sessionStorage.setItem('careme_auth', JSON.stringify(currentUserSession));
+      setCaremeAuth({ role: 'user', id: email, email: email });
       logEvent('USER_LOGIN', { email: email });
       document.getElementById('loginOverlay').classList.add('hidden');
       updateAdminAccessUI();
@@ -703,8 +712,7 @@
 
       // Fallback direct check for testing admin / admin1234 and security01 / sec01@kku
       if ((username === 'admin' && password === 'admin1234') || (username === 'security01' && password === 'sec01@kku')) {
-        currentUserSession = { role: 'admin', id: username, username: username };
-        sessionStorage.setItem('careme_auth', JSON.stringify(currentUserSession));
+        setCaremeAuth({ role: 'admin', id: username, username: username });
         logEvent('ADMIN_LOGIN', { username: username });
         document.getElementById('loginOverlay').classList.add('hidden');
         updateAdminAccessUI();
@@ -718,8 +726,7 @@
       caremeDb.ref('admins/' + username).once('value', (snapshot) => {
         const adminData = snapshot.val();
         if (adminData && (adminData.passwordHash === hashedPassword || adminData.passwordHash === password)) {
-          currentUserSession = { role: 'admin', id: username, username: username };
-          sessionStorage.setItem('careme_auth', JSON.stringify(currentUserSession));
+          setCaremeAuth({ role: 'admin', id: username, username: username });
           logEvent('ADMIN_LOGIN', { username: username });
           document.getElementById('loginOverlay').classList.add('hidden');
           updateAdminAccessUI();
@@ -730,8 +737,7 @@
         }
       }, (error) => {
         if (username === 'admin' && password === 'admin1234') {
-          currentUserSession = { role: 'admin', id: username, username: username };
-          sessionStorage.setItem('careme_auth', JSON.stringify(currentUserSession));
+          setCaremeAuth({ role: 'admin', id: username, username: username });
           logEvent('ADMIN_LOGIN', { username: username });
           document.getElementById('loginOverlay').classList.add('hidden');
           updateAdminAccessUI();
@@ -750,25 +756,20 @@
     }
 
     function checkAuthSession() {
-      const authDataStr = sessionStorage.getItem('careme_auth');
-      if (!authDataStr) {
+      const auth = getCaremeAuth();
+      if (!auth) {
         document.getElementById('loginOverlay').classList.remove('hidden');
       } else {
-        try {
-          currentUserSession = JSON.parse(authDataStr);
-          updateAdminAccessUI();
-          initAppAfterLogin();
-        } catch(e) {
-          sessionStorage.removeItem('careme_auth');
-          document.getElementById('loginOverlay').classList.remove('hidden');
-        }
+        currentUserSession = auth;
+        updateAdminAccessUI();
+        initAppAfterLogin();
       }
     }
 
     function logoutApp() {
       if (confirm("คุณต้องการออกจากระบบใช่หรือไม่?")) {
         logEvent('LOGOUT', {});
-        sessionStorage.removeItem('careme_auth');
+        clearCaremeAuth();
         window.location.reload();
       }
     }
