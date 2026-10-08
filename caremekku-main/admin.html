@@ -24,70 +24,79 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
 
-  <!-- NAVBAR -->
-  <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center shadow-lg">
-    <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center font-bold text-white shadow-md">
-        <i class="fa-solid fa-shield-cat text-xl"></i>
+  <div id="adminProtectedView" class="hidden flex-1 flex flex-col justify-center items-center p-6 text-center">
+    <div class="bg-slate-800 border border-red-500/50 p-8 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
+      <div class="w-16 h-16 bg-red-500/20 text-red-400 rounded-2xl mx-auto flex items-center justify-center text-3xl">
+        <i class="fa-solid fa-triangle-exclamation"></i>
       </div>
-      <div>
-        <h1 class="font-bold text-lg text-white">CareMe KKU - Command Center</h1>
-        <p class="text-xs text-slate-400">ศูนย์ปฏิบัติการและเฝ้าระวังความปลอดภัย มหาวิทยาลัยขอนแก่น</p>
-      </div>
-    </div>
-    <div class="flex items-center space-x-3">
-      <button onclick="clearAdminLogs()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-3 py-2 rounded-lg font-bold transition flex items-center space-x-1">
-        <i class="fa-solid fa-trash"></i>
-        <span>ล้างประวัติการแจ้งเตือน</span>
-      </button>
-      <a href="index.html" class="bg-kkuBlue hover:bg-blue-600 text-white text-xs px-4 py-2 rounded-lg font-bold transition flex items-center space-x-1 shadow">
-        <i class="fa-solid fa-mobile-screen"></i>
-        <span>เปิดหน้าแอปนักศึกษา</span>
+      <h2 class="text-xl font-bold text-white">คุณไม่มีสิทธิ์เข้าถึงส่วนผู้ดูแลระบบ</h2>
+      <p class="text-xs text-slate-400">กรุณาเข้าสู่ระบบด้วยบัญชีเจ้าหน้าที่ Admin ที่ได้รับอนุญาตเท่านั้น</p>
+      <a href="index.html" class="inline-block w-full bg-kkuBlue hover:bg-blue-600 text-white font-bold text-xs py-3 rounded-xl transition shadow">
+        กลับสู่หน้าแอปพลิเคชัน
       </a>
     </div>
-  </header>
+  </div>
 
-  <!-- MAIN DASHBOARD CONTENT -->
-  <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
-    
-    <!-- LEFT PANEL: ALERTS LIST -->
-    <div class="lg:col-span-1 space-y-4 flex flex-col">
-      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex-1 flex flex-col shadow-md">
-        <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-3">
-          <div class="flex items-center space-x-2">
-            <span class="relative flex h-3 w-3">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-            </span>
-            <h2 class="font-bold text-sm text-white">รายการเหตุการณ์ด่วน (Live Feed)</h2>
-          </div>
-          <span id="alertCounter" class="bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-bold px-2.5 py-0.5 rounded-full">0 เหตุการณ์</span>
+  <div id="adminMainDashboard" class="flex flex-col flex-1">
+    <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center shadow-lg">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center font-bold text-white shadow-md">
+          <i class="fa-solid fa-shield-cat text-xl"></i>
         </div>
+        <div>
+          <h1 class="font-bold text-lg text-white">CareMe KKU - Command Center</h1>
+          <p class="text-xs text-slate-400">ศูนย์ปฏิบัติการและเฝ้าระวังความปลอดภัย มหาวิทยาลัยขอนแก่น (Admin Section)</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <button onclick="clearAdminLogs()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-3 py-2 rounded-lg font-bold transition flex items-center space-x-1">
+          <i class="fa-solid fa-trash"></i>
+          <span>ล้างประวัติการแจ้งเตือน</span>
+        </button>
+        <a href="index.html" class="bg-kkuBlue hover:bg-blue-600 text-white text-xs px-4 py-2 rounded-lg font-bold transition flex items-center space-x-1 shadow">
+          <i class="fa-solid fa-mobile-screen"></i>
+          <span>เปิดหน้าแอปนักศึกษา</span>
+        </a>
+      </div>
+    </header>
 
-        <div id="alertsContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[650px]">
-          <div id="emptyAlertState" class="text-center text-slate-500 py-12 text-xs">
-            <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
-            ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+      <div class="lg:col-span-1 space-y-4 flex flex-col">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex-1 flex flex-col shadow-md">
+          <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-3">
+            <div class="flex items-center space-x-2">
+              <span class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <h2 class="font-bold text-sm text-white">รายการเหตุการณ์ด่วน (Live Feed)</h2>
+            </div>
+            <span id="alertCounter" class="bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-bold px-2.5 py-0.5 rounded-full">0 เหตุการณ์</span>
+          </div>
+
+          <div id="alertsContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[650px]">
+            <div id="emptyAlertState" class="text-center text-slate-500 py-12 text-xs">
+              <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
+              ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- RIGHT PANEL: MAP & DETAILS -->
-    <div class="lg:col-span-2 space-y-4 flex flex-col">
-      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex-1 flex flex-col shadow-md">
-        <div class="flex justify-between items-center mb-3">
-          <h2 class="font-bold text-sm text-white flex items-center space-x-2">
-            <i class="fa-solid fa-map-location-dot text-sky-400"></i>
-            <span>แผนที่พิกัดเหตุการณ์ Real-time</span>
-          </h2>
-          <span class="text-xs text-slate-400">ตำแหน่ง GPS สดอัปเดตต่อเนื่อง</span>
+      <div class="lg:col-span-2 space-y-4 flex flex-col">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex-1 flex flex-col shadow-md">
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="font-bold text-sm text-white flex items-center space-x-2">
+              <i class="fa-solid fa-map-location-dot text-sky-400"></i>
+              <span>แผนที่พิกัดเหตุการณ์ Real-time & Safe Walk Monitoring</span>
+            </h2>
+            <span class="text-xs text-slate-400">ตำแหน่ง GPS สดอัปเดตต่อเนื่อง</span>
+          </div>
+
+          <div id="adminMap" class="w-full h-[550px] rounded-xl overflow-hidden border border-slate-700"></div>
         </div>
-
-        <div id="adminMap" class="w-full h-[550px] rounded-xl overflow-hidden border border-slate-700"></div>
       </div>
     </div>
-
   </div>
 
   <script>
@@ -108,6 +117,30 @@
     firebase.initializeApp(firebaseConfig);
     const caremeDb = firebase.database();
 
+    function verifyAdminAccess() {
+      const authDataStr = sessionStorage.getItem('careme_auth');
+      if (!authDataStr) {
+        lockAdminAccess();
+        return false;
+      }
+      try {
+        const auth = JSON.parse(authDataStr);
+        if (auth.role !== 'admin') {
+          lockAdminAccess();
+          return false;
+        }
+      } catch(e) {
+        lockAdminAccess();
+        return false;
+      }
+      return true;
+    }
+
+    function lockAdminAccess() {
+      document.getElementById('adminMainDashboard').classList.add('hidden');
+      document.getElementById('adminProtectedView').classList.remove('hidden');
+    }
+
     function initAdminMap() {
       adminMap = L.map('adminMap').setView([16.4746, 102.8234], 15);
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
@@ -116,6 +149,8 @@
     }
 
     function loadDataFromStorage() {
+      if (!verifyAdminAccess()) return;
+
       caremeDb.ref('sos').once('value', (sosSnapshot) => {
         caremeDb.ref('reports').once('value', (reportSnapshot) => {
           const sosVal = sosSnapshot.val() || {};
@@ -146,6 +181,8 @@
     }
 
     function initFirebaseRealtimeListeners() {
+      if (!verifyAdminAccess()) return;
+
       caremeDb.ref('sos').on('child_added', (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -207,16 +244,32 @@
         ${data.location ? `<p class="text-[11px] text-slate-300"><i class="fa-solid fa-location-dot text-slate-400 mr-1"></i> ${data.location}</p>` : ''}
         ${data.detail ? `<p class="text-[11px] text-slate-400 bg-slate-800/80 p-2 rounded-lg mt-1">${data.detail}</p>` : ''}
         ${imgHtml}
-        <button onclick="focusMap(${data.lat}, ${data.lng}, '${data.title}')" class="mt-2 w-full bg-slate-800 hover:bg-slate-900 border border-slate-600 text-slate-200 text-[11px] py-1.5 rounded-lg font-bold transition flex items-center justify-center space-x-1">
-          <i class="fa-solid fa-crosshairs text-sky-400"></i>
-          <span>ปักหมุดดูตำแหน่งในแผนที่</span>
-        </button>
+        <div class="grid grid-cols-2 gap-2 pt-2">
+          <button onclick="focusMap(${data.lat}, ${data.lng}, '${data.title}')" class="w-full bg-slate-800 hover:bg-slate-900 border border-slate-600 text-slate-200 text-[11px] py-1.5 rounded-lg font-bold transition flex items-center justify-center space-x-1">
+            <i class="fa-solid fa-crosshairs text-sky-400"></i>
+            <span>ปักหมุด</span>
+          </button>
+          <a href="tel:0817080088" onclick="logAdminCallback('${data.user || 'นักศึกษา'}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] py-1.5 rounded-lg font-bold transition flex items-center justify-center space-x-1">
+            <i class="fa-solid fa-phone-volume"></i>
+            <span>โทรกลับ User</span>
+          </a>
+        </div>
       `;
 
       container.prepend(div);
       if (data.lat && data.lng) {
         addMapMarker(data.id, data.lat, data.lng, data.title, type);
       }
+    }
+
+    function logAdminCallback(userName) {
+      const logId = Date.now();
+      caremeDb.ref('eventLogs/' + logId).set({
+        id: logId,
+        type: 'ADMIN_CALL_USER',
+        payload: { targetUser: userName },
+        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' น.'
+      });
     }
 
     function addMapMarker(id, lat, lng, title, type) {
@@ -244,6 +297,7 @@
     }
 
     function clearAdminLogs() {
+      if (!verifyAdminAccess()) return;
       if (confirm("คุณต้องการล้างประวัติการแจ้งเตือนทั้งหมดในระบบใช่หรือไม่?")) {
         caremeDb.ref('sos').remove();
         caremeDb.ref('reports').remove();
@@ -255,8 +309,8 @@
       }
     }
 
-    // รับสัญญาณ Real-time จาก BroadcastChannel
     channel.onmessage = (event) => {
+      if (!verifyAdminAccess()) return;
       const { type, payload } = event.data;
       if (type === 'TRIGGER_SOS' || type === 'START_SAFEWALK') {
         addAlertCard(payload, 'SOS');
@@ -269,17 +323,12 @@
       }
     };
 
-    // ดักจับเมื่อมีการบันทึก localStorage ใหม่ในเครื่อง
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'careme_sos_data' || e.key === 'careme_report_data') {
-        loadDataFromStorage();
-      }
-    });
-
     window.onload = () => {
-      initAdminMap();
-      loadDataFromStorage();
-      initFirebaseRealtimeListeners();
+      if (verifyAdminAccess()) {
+        initAdminMap();
+        loadDataFromStorage();
+        initFirebaseRealtimeListeners();
+      }
     };
   </script>
 </body>
