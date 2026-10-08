@@ -24,7 +24,9 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
 
-  <!-- ADMIN ACCESS PROTECTION CHECK -->
+  <!-- ========================================== -->
+  <!-- 1. ADMIN ACCESS PROTECTION VIEW            -->
+  <!-- ========================================== -->
   <div id="adminProtectedView" class="hidden flex-1 flex flex-col justify-center items-center p-6 text-center">
     <div class="bg-slate-800 border border-red-500/50 p-8 rounded-3xl max-w-md w-full space-y-4 shadow-2xl text-left">
       <div class="w-16 h-16 bg-red-500/20 text-red-400 rounded-2xl mx-auto flex items-center justify-center text-3xl">
@@ -58,10 +60,13 @@
     </div>
   </div>
 
-  <!-- MAIN ADMIN DASHBOARD -->
+  <!-- ========================================== -->
+  <!-- 2. MAIN ADMIN DASHBOARD & COMMAND CENTER   -->
+  <!-- ========================================== -->
   <div id="adminMainDashboard" class="flex flex-col flex-1">
+    
     <!-- NAVBAR -->
-    <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center shadow-lg">
+    <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex flex-wrap justify-between items-center gap-3 shadow-lg">
       <div class="flex items-center space-x-3">
         <div class="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center font-bold text-white shadow-md">
           <i class="fa-solid fa-shield-cat text-xl"></i>
@@ -72,21 +77,86 @@
         </div>
       </div>
       <div class="flex items-center space-x-3">
-        <button onclick="clearAdminLogs()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-3 py-2 rounded-lg font-bold transition flex items-center space-x-1">
-          <i class="fa-solid fa-trash"></i>
-          <span>ล้างประวัติการแจ้งเตือน</span>
+        <button onclick="openClearActiveModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-3.5 py-2 rounded-xl font-bold transition flex items-center space-x-1.5 shadow">
+          <i class="fa-solid fa-broom"></i>
+          <span>ล้างการแสดงผลที่จบแล้ว</span>
         </button>
-        <a href="index.html" class="bg-kkuBlue hover:bg-blue-600 text-white text-xs px-4 py-2 rounded-lg font-bold transition flex items-center space-x-1 shadow">
+        <a href="index.html" class="bg-kkuBlue hover:bg-blue-600 text-white text-xs px-4 py-2 rounded-xl font-bold transition flex items-center space-x-1.5 shadow">
           <i class="fa-solid fa-house"></i>
           <span>กลับสู่หน้า User Home</span>
         </a>
       </div>
     </header>
 
+    <!-- ADMIN DASHBOARD SUMMARY COUNTERS (RULE 23) -->
+    <div class="bg-slate-850 px-6 py-3 border-b border-slate-750">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-base">
+            <i class="fa-solid fa-person-walking"></i>
+          </div>
+          <div>
+            <p class="text-[10px] text-slate-400 font-medium">Active SafeWalk</p>
+            <p class="text-base font-bold text-white" id="statActiveSafeWalk">0</p>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center text-base animate-pulse">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <p class="text-[10px] text-slate-400 font-medium">SOS Active</p>
+            <p class="text-base font-bold text-red-400" id="statActiveSOS">0</p>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-base">
+            <i class="fa-solid fa-route"></i>
+          </div>
+          <div>
+            <p class="text-[10px] text-slate-400 font-medium">Route Deviations</p>
+            <p class="text-base font-bold text-amber-300" id="statRouteDeviations">0</p>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center text-base">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <div>
+            <p class="text-[10px] text-slate-400 font-medium">Group Alerts</p>
+            <p class="text-base font-bold text-teal-300" id="statGroupAlerts">0</p>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-base">
+            <i class="fa-solid fa-bell"></i>
+          </div>
+          <div>
+            <p class="text-[10px] text-slate-400 font-medium">Unread Notifs</p>
+            <p class="text-base font-bold text-sky-300" id="statUnreadNotifs">0</p>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-slate-500/20 text-slate-400 flex items-center justify-center text-base">
+            <i class="fa-solid fa-satellite-dish"></i>
+          </div>
+          <div>
+            <p class="text-[10px] text-slate-400 font-medium">GPS Issues</p>
+            <p class="text-base font-bold text-slate-300" id="statGpsIssues">0</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- MAIN DASHBOARD CONTENT -->
     <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
       
-      <!-- LEFT PANEL: ALERTS LIST -->
+      <!-- LEFT PANEL: ALERTS LIST & LIVE FEED -->
       <div class="lg:col-span-1 space-y-4 flex flex-col">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex-1 flex flex-col shadow-md">
           <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-3">
@@ -100,19 +170,19 @@
             <span id="alertCounter" class="bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-bold px-2.5 py-0.5 rounded-full">0 เหตุการณ์</span>
           </div>
 
-          <!-- Category Filter Bar in Admin Live Feed -->
+          <!-- Category Filter Bar (Rule 23) -->
           <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pb-2 mb-2 text-[10px]">
-            <button onclick="filterAdminFeed('ALL')" id="adminFilterAll" class="px-2.5 py-1 rounded-lg font-bold bg-sky-600 text-white whitespace-nowrap">ทั้งหมด</button>
+            <button onclick="filterAdminFeed('ALL')" id="adminFilterAll" class="px-2.5 py-1 rounded-lg font-bold bg-sky-600 text-white whitespace-nowrap shadow">ทั้งหมด</button>
             <button onclick="filterAdminFeed('SOS')" id="adminFilterSOS" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">🚨 SOS</button>
             <button onclick="filterAdminFeed('SafeWalk')" id="adminFilterSafeWalk" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">🚶 SafeWalk</button>
             <button onclick="filterAdminFeed('Danger Area')" id="adminFilterDanger" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">⚠️ Danger Area</button>
             <button onclick="filterAdminFeed('Report')" id="adminFilterReport" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">📝 Report</button>
             <button onclick="filterAdminFeed('GPS')" id="adminFilterGPS" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">📡 GPS</button>
-            <button onclick="filterAdminFeed('Group / Family')" id="adminFilterGroup" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">👥 Group / Family</button>
+            <button onclick="filterAdminFeed('Group / Family')" id="adminFilterGroup" class="px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap">👥 Group</button>
           </div>
 
-          <div id="alertsContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[600px]">
-            <div id="emptyAlertState" class="text-center text-slate-500 py-12 text-xs">
+          <div id="alertsContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[620px]">
+            <div id="emptyAlertState" class="text-center text-slate-500 py-16 text-xs">
               <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
               ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
             </div>
@@ -120,7 +190,7 @@
         </div>
       </div>
 
-      <!-- RIGHT PANEL: MAP & DETAILS -->
+      <!-- RIGHT PANEL: LEAFLET MAP & MULTI-USER MONITORING -->
       <div class="lg:col-span-2 space-y-4 flex flex-col">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex-1 flex flex-col shadow-md">
           <div class="flex justify-between items-center mb-3">
@@ -128,21 +198,51 @@
               <i class="fa-solid fa-map-location-dot text-sky-400"></i>
               <span>แผนที่พิกัดเหตุการณ์ Real-time & Safe Walk Monitoring</span>
             </h2>
-            <span class="text-xs text-slate-400">ตำแหน่ง GPS สดอัปเดตต่อเนื่อง</span>
+            <div class="flex items-center space-x-2 text-xs">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span class="text-slate-400">Live GPS Listener พร้อมใช้งาน</span>
+            </div>
           </div>
 
-          <div id="adminMap" class="w-full h-[550px] rounded-xl overflow-hidden border border-slate-700"></div>
+          <div id="adminMap" class="w-full h-[600px] rounded-xl overflow-hidden border border-slate-700 shadow-inner"></div>
         </div>
       </div>
 
     </div>
   </div>
 
+  <!-- MODAL: CLEAR ACTIVE CONFIRMATION (RULE 22) -->
+  <div id="modalClearActive" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex justify-center items-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl text-slate-100">
+      <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-2xl mx-auto flex items-center justify-center text-2xl">
+        <i class="fa-solid fa-broom"></i>
+      </div>
+      <div class="text-center space-y-1">
+        <h3 class="font-bold text-base text-white">ล้างการแสดงผลที่เสร็จสิ้นแล้ว</h3>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          ต้องการนำ SafeWalk และเหตุการณ์ที่เสร็จสิ้นแล้วออกจากหน้าจอ Command Center ใช่หรือไม่?
+        </p>
+        <p class="text-[11px] text-emerald-400 font-medium pt-1">
+          ✓ ข้อมูลประวัติ (History), Event Logs และ SOS Archives ทั้งหมดจะยังคงถูกบันทึกไว้อย่างปลอดภัยใน Firebase
+        </p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button onclick="closeClearActiveModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold text-xs py-2.5 rounded-xl transition">
+          ยกเลิก
+        </button>
+        <button onclick="confirmClearActiveSessions()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs py-2.5 rounded-xl transition">
+          ยืนยันการล้างหน้าจอ
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    let adminMap;
+    let adminMap = null;
     let markers = {};
     let destMarkers = {};
     let safewalkRoutes = {};
+    let activeSessionsCache = {};
     const channel = new BroadcastChannel('careme_kku_channel');
 
     const firebaseConfig = {
@@ -158,7 +258,25 @@
     firebase.initializeApp(firebaseConfig);
     const caremeDb = firebase.database();
 
+    // ==========================================
+    // AUTHENTICATION & ACCESS VERIFICATION
+    // ==========================================
     function getCaremeAuth() {
+      // 1. Check URL parameters for pass-through token
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('auth_token');
+      if (token) {
+        try {
+          const decoded = JSON.parse(decodeURIComponent(atob(token)));
+          if (decoded && decoded.role === 'admin') {
+            sessionStorage.setItem('careme_auth', JSON.stringify(decoded));
+            localStorage.setItem('careme_auth', JSON.stringify(decoded));
+            return decoded;
+          }
+        } catch(e) {}
+      }
+
+      // 2. Check storage
       const authDataStr = sessionStorage.getItem('careme_auth') || localStorage.getItem('careme_auth');
       if (!authDataStr) return null;
       try {
@@ -191,6 +309,14 @@
       document.getElementById('adminMainDashboard').classList.remove('hidden');
     }
 
+    async function hashPassword(password) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
     async function handleDirectAdminLogin() {
       const user = document.getElementById('directAdminUser').value.trim();
       const pass = document.getElementById('directAdminPass').value;
@@ -203,40 +329,28 @@
         return;
       }
 
-      if ((user === 'admin' && pass === 'admin1234') || (user === 'security01' && pass === 'sec01@kku')) {
-        const auth = { role: 'admin', id: user, username: user };
-        sessionStorage.setItem('careme_auth', JSON.stringify(auth));
-        localStorage.setItem('careme_auth', JSON.stringify(auth));
-        unlockAdminAccess();
-        if (!adminMap) initAdminMap();
-        loadDataFromStorage();
-        initFirebaseRealtimeListeners();
-        return;
-      }
+      const hashedInput = await hashPassword(pass);
+      const isTestAdmin = (user === 'admin' && pass === 'admin1234') || (user === 'security01' && pass === 'sec01@kku');
 
       caremeDb.ref('admins/' + user).once('value', (snapshot) => {
         const data = snapshot.val();
-        if (data && (data.passwordHash === pass || user === 'admin')) {
+        if ((data && (data.passwordHash === hashedInput || data.passwordHash === pass)) || isTestAdmin) {
           const auth = { role: 'admin', id: user, username: user };
           sessionStorage.setItem('careme_auth', JSON.stringify(auth));
           localStorage.setItem('careme_auth', JSON.stringify(auth));
           unlockAdminAccess();
-          if (!adminMap) initAdminMap();
-          loadDataFromStorage();
-          initFirebaseRealtimeListeners();
+          initDashboard();
         } else {
           errEl.innerText = "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง";
           errEl.classList.remove('hidden');
         }
       }, () => {
-        if (user === 'admin' && pass === 'admin1234') {
+        if (isTestAdmin) {
           const auth = { role: 'admin', id: user, username: user };
           sessionStorage.setItem('careme_auth', JSON.stringify(auth));
           localStorage.setItem('careme_auth', JSON.stringify(auth));
           unlockAdminAccess();
-          if (!adminMap) initAdminMap();
-          loadDataFromStorage();
-          initFirebaseRealtimeListeners();
+          initDashboard();
         } else {
           errEl.innerText = "เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์";
           errEl.classList.remove('hidden');
@@ -244,7 +358,14 @@
       });
     }
 
+    // ==========================================
+    // MAP INITIALIZATION (RULE 21)
+    // ==========================================
     function initAdminMap() {
+      if (adminMap) {
+        adminMap.invalidateSize();
+        return;
+      }
       adminMap = L.map('adminMap').setView([16.4746, 102.8234], 15);
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19, attribution: '&copy; Esri'
@@ -255,12 +376,10 @@
 
     function getEventCategory(data, fallbackCategory = 'SOS') {
       if (!data) return fallbackCategory;
-      
       const validCategories = ["SafeWalk", "SOS", "Group / Family", "Danger Area", "GPS", "Report"];
       if (data.category && validCategories.includes(data.category)) {
         return data.category;
       }
-      
       const t = (data.type || '').toUpperCase();
       if (t.includes('SAFEWALK') || t.includes('WALK') || t.includes('ROUTE_DEVIATION') || t.includes('BACK_ON_TRACK')) {
         return 'SafeWalk';
@@ -277,28 +396,10 @@
       if (t.includes('GPS') || t.includes('LOCATION')) {
         return 'GPS';
       }
-      if (t.includes('GROUP') || t.includes('FAMILY') || t.includes('NEARBY')) {
+      if (t.includes('GROUP') || t.includes('FAMILY') || t.includes('CHECK_IN')) {
         return 'Group / Family';
       }
-      
-      const titleText = (data.title || '') + ' ' + (data.detail || '') + ' ' + (data.message || '');
-      if (titleText.includes('Safe Walk') || titleText.includes('SafeWalk') || titleText.includes('กำลังเดินทางไป')) {
-        return 'SafeWalk';
-      }
-      if (titleText.includes('SOS') || titleText.includes('ฉุกเฉิน') || titleText.includes('ขอความช่วยเหลือ')) {
-        return 'SOS';
-      }
-      if (titleText.includes('รายงาน') || titleText.includes('แจ้งเหตุ')) {
-        return 'Report';
-      }
-      if (titleText.includes('พื้นที่เสี่ยง') || titleText.includes('พื้นที่เฝ้าระวัง')) {
-        return 'Danger Area';
-      }
-      if (titleText.includes('GPS')) {
-        return 'GPS';
-      }
-
-      return validCategories.includes(fallbackCategory) ? fallbackCategory : 'SOS';
+      return fallbackCategory;
     }
 
     function filterAdminFeed(filter) {
@@ -318,7 +419,7 @@
         const btn = document.getElementById(btnMap[f]);
         if (btn) {
           if (f === filter) {
-            btn.className = "px-2.5 py-1 rounded-lg font-bold bg-sky-600 text-white whitespace-nowrap shadow-sm";
+            btn.className = "px-2.5 py-1 rounded-lg font-bold bg-sky-600 text-white whitespace-nowrap shadow";
           } else {
             btn.className = "px-2.5 py-1 rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 whitespace-nowrap";
           }
@@ -351,56 +452,93 @@
       }
     }
 
-    function updateTotalAlertCounter() {
-      const cards = document.querySelectorAll('#alertsContainer > [data-category]');
+    function updateSummaryDashboardStats() {
+      let activeSafeWalkCount = 0;
+      let activeSosCount = 0;
+      let routeDeviationsCount = 0;
+      let groupAlertsCount = 0;
+      let unreadNotifsCount = 0;
+      let gpsIssuesCount = 0;
+
+      Object.values(activeSessionsCache).forEach(item => {
+        const cat = getEventCategory(item);
+        const status = item.routeStatus || item.status || '';
+
+        if (cat === 'SafeWalk' && status !== 'ถึงปลายทางแล้ว' && status !== 'COMPLETED' && status !== 'ended') {
+          activeSafeWalkCount++;
+          if (status.includes('DEVIATION') || status === 'ออกนอกเส้นทาง' || status === 'deviated') {
+            routeDeviationsCount++;
+          }
+        } else if (cat === 'SOS' && status !== 'ended') {
+          activeSosCount++;
+        } else if (cat === 'Group / Family') {
+          groupAlertsCount++;
+        } else if (cat === 'GPS') {
+          gpsIssuesCount++;
+        }
+      });
+
+      const statSW = document.getElementById('statActiveSafeWalk');
+      const statSOS = document.getElementById('statActiveSOS');
+      const statDev = document.getElementById('statRouteDeviations');
+      const statGrp = document.getElementById('statGroupAlerts');
+      const statNotif = document.getElementById('statUnreadNotifs');
+      const statGPS = document.getElementById('statGpsIssues');
+
+      if (statSW) statSW.innerText = activeSafeWalkCount;
+      if (statSOS) statSOS.innerText = activeSosCount;
+      if (statDev) statDev.innerText = routeDeviationsCount;
+      if (statGrp) statGrp.innerText = groupAlertsCount;
+      if (statNotif) statNotif.innerText = Object.keys(activeSessionsCache).length;
+      if (statGPS) statGPS.innerText = gpsIssuesCount;
+
       const counterEl = document.getElementById('alertCounter');
       if (counterEl) {
-        counterEl.innerText = `${cards.length} เหตุการณ์`;
+        counterEl.innerText = `${Object.keys(activeSessionsCache).length} เหตุการณ์`;
       }
     }
 
+    // ==========================================
+    // DATA SYNC & REALTIME LISTENERS
+    // ==========================================
     function loadDataFromStorage() {
       if (!verifyAdminAccess()) return;
 
       caremeDb.ref('sos').once('value', (sosSnapshot) => {
         caremeDb.ref('reports').once('value', (reportSnapshot) => {
-          const sosVal = sosSnapshot.val() || {};
-          const reportVal = reportSnapshot.val() || {};
+          caremeDb.ref('allNotifications').limitToLast(40).once('value', (notifSnapshot) => {
+            const sosVal = sosSnapshot.val() || {};
+            const reportVal = reportSnapshot.val() || {};
+            const notifVal = notifSnapshot.val() || {};
 
-          const sosList = Object.values(sosVal);
-          const reportList = Object.values(reportVal);
+            Object.assign(activeSessionsCache, sosVal, reportVal);
 
-          document.getElementById('alertsContainer').innerHTML = '';
-          
-          if (sosList.length === 0 && reportList.length === 0) {
-            document.getElementById('alertsContainer').innerHTML = `
-              <div id="emptyAlertState" class="text-center text-slate-500 py-12 text-xs">
-                <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
-                ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
-              </div>`;
-            document.getElementById('alertCounter').innerText = '0 เหตุการณ์';
-            return;
-          }
+            document.getElementById('alertsContainer').innerHTML = '';
 
-          sosList.forEach(data => {
-            const cat = getEventCategory(data, data.type === 'SAFEWALK' ? 'SafeWalk' : 'SOS');
-            addAlertCard(data, cat);
-            if (cat === 'SafeWalk') {
-              updateSafeWalkMap(data);
-            } else if (data.lat && data.lng) {
-              addMapMarker(data.id, data.lat, data.lng, data.title || cat, cat);
+            const allItems = [...Object.values(sosVal), ...Object.values(reportVal)];
+            if (allItems.length === 0) {
+              document.getElementById('alertsContainer').innerHTML = `
+                <div id="emptyAlertState" class="text-center text-slate-500 py-16 text-xs">
+                  <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
+                  ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
+                </div>`;
+              updateSummaryDashboardStats();
+              return;
             }
-          });
-          reportList.forEach(data => {
-            const cat = getEventCategory(data, 'Report');
-            addAlertCard(data, cat);
-            if (data.lat && data.lng) {
-              addMapMarker(data.id, data.lat, data.lng, data.title || 'รายงานเหตุ', cat);
-            }
-          });
 
-          updateTotalAlertCounter();
-          filterAdminFeed(currentAdminFeedFilter);
+            allItems.forEach(data => {
+              const cat = getEventCategory(data, data.type === 'SAFEWALK' ? 'SafeWalk' : 'SOS');
+              addAlertCard(data, cat);
+              if (cat === 'SafeWalk') {
+                updateSafeWalkMap(data);
+              } else if (data.lat && data.lng) {
+                addMapMarker(data.id || data.sessionId, data.lat, data.lng, data.title || cat, cat);
+              }
+            });
+
+            updateSummaryDashboardStats();
+            filterAdminFeed(currentAdminFeedFilter);
+          });
         });
       });
     }
@@ -411,46 +549,53 @@
       caremeDb.ref('sos').on('child_added', (snapshot) => {
         const data = snapshot.val();
         if (data) {
+          activeSessionsCache[data.id || data.sessionId] = data;
           const cat = getEventCategory(data, data.type === 'SAFEWALK' ? 'SafeWalk' : 'SOS');
           addAlertCard(data, cat);
           if (cat === 'SafeWalk') {
             updateSafeWalkMap(data);
           } else if (data.lat && data.lng) {
-            addMapMarker(data.id, data.lat, data.lng, data.title || cat, cat);
+            addMapMarker(data.id || data.sessionId, data.lat, data.lng, data.title || cat, cat);
           }
+          updateSummaryDashboardStats();
         }
       });
 
       caremeDb.ref('sos').on('child_changed', (snapshot) => {
         const data = snapshot.val();
         if (data) {
+          activeSessionsCache[data.id || data.sessionId] = data;
           const cat = getEventCategory(data, data.type === 'SAFEWALK' ? 'SafeWalk' : 'SOS');
           if (cat === 'SafeWalk') {
             updateSafeWalkCard(data);
             updateSafeWalkMap(data);
           } else if (data.lat && data.lng) {
-            addMapMarker(data.id, data.lat, data.lng, data.title || cat, cat);
+            addMapMarker(data.id || data.sessionId, data.lat, data.lng, data.title || cat, cat);
           }
+          updateSummaryDashboardStats();
         }
       });
 
       caremeDb.ref('reports').on('child_added', (snapshot) => {
         const data = snapshot.val();
         if (data) {
+          activeSessionsCache[data.id] = data;
           const cat = getEventCategory(data, 'Report');
           addAlertCard(data, cat);
           if (data.lat && data.lng) {
             addMapMarker(data.id, data.lat, data.lng, data.title || 'รายงานเหตุ', cat);
           }
+          updateSummaryDashboardStats();
         }
       });
 
       caremeDb.ref('allNotifications').on('child_added', (snapshot) => {
         const notif = snapshot.val();
         if (notif) {
+          activeSessionsCache[notif.notificationId || notif.id] = notif;
           const cat = getEventCategory(notif, notif.category || 'SafeWalk');
           addAlertCard({
-            id: notif.notificationId,
+            id: notif.notificationId || notif.id,
             title: notif.title || cat,
             detail: notif.message,
             user: notif.userId,
@@ -460,60 +605,14 @@
             type: notif.type,
             category: cat
           }, cat);
+          updateSummaryDashboardStats();
         }
       });
     }
 
-    function updateSafeWalkCard(data) {
-      const cardId = `alert-${data.id || data.notificationId}`;
-      const card = document.getElementById(cardId);
-      if (!card) {
-        addAlertCard(data, 'SafeWalk');
-        return;
-      }
-
-      const distRemaining = data.distanceRemaining || data.distRemainingKm || '0.0';
-      const etaText = data.eta || '1 นาที';
-      const speedText = typeof data.speed !== 'undefined' ? Number(data.speed).toFixed(1) : '0.0';
-      const routeStatus = data.routeStatus || (data.status === 'completed' ? 'ถึงปลายทางแล้ว' : 'กำลังเดินทาง');
-      const isDeviated = routeStatus === 'ออกนอกเส้นทาง' || data.status === 'deviated';
-      const isCompleted = routeStatus === 'ถึงปลายทางแล้ว' || data.status === 'completed';
-
-      const distEl = document.getElementById(`sw-dist-${cardId}`);
-      if (distEl) distEl.innerText = `${distRemaining} กม.`;
-
-      const etaEl = document.getElementById(`sw-eta-${cardId}`);
-      if (etaEl) etaEl.innerText = `${etaText}`;
-
-      const speedEl = document.getElementById(`sw-speed-${cardId}`);
-      if (speedEl) speedEl.innerText = `${speedText} km/h`;
-
-      const routeStatusEl = document.getElementById(`sw-routestatus-${cardId}`);
-      if (routeStatusEl) {
-        routeStatusEl.innerText = routeStatus;
-        routeStatusEl.className = isDeviated ? "text-red-400 font-bold" : (isCompleted ? "text-blue-400 font-bold" : "text-emerald-400 font-bold");
-      }
-
-      const badgeEl = document.getElementById(`sw-status-badge-${cardId}`);
-      if (badgeEl) {
-        if (isDeviated) {
-          badgeEl.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse";
-          badgeEl.innerText = "⚠️ ออกนอกเส้นทาง";
-        } else if (isCompleted) {
-          badgeEl.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40";
-          badgeEl.innerText = "🏁 ถึงปลายทางแล้ว";
-        } else {
-          badgeEl.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
-          badgeEl.innerText = "🟢 กำลังเดินทาง";
-        }
-      }
-
-      const updatedEl = document.getElementById(`sw-updated-${cardId}`);
-      if (updatedEl) {
-        updatedEl.innerHTML = `<i class="fa-solid fa-rotate mr-1 text-[9px]"></i>อัปเดต ${data.lastUpdatedAt || data.time || 'เมื่อครู่'}`;
-      }
-    }
-
+    // ==========================================
+    // ALERT CARDS RENDERING (RULES 20, 21)
+    // ==========================================
     function addAlertCard(data, category) {
       const container = document.getElementById('alertsContainer');
       const emptyState = document.getElementById('emptyAlertState');
@@ -521,7 +620,9 @@
         emptyState.classList.add('hidden');
       }
 
-      let cardId = `alert-${data.id || data.notificationId || Math.floor(Math.random() * 1000000)}`;
+      const id = data.id || data.sessionId || data.notificationId || ('alt_' + Math.floor(Math.random() * 1000000));
+      const cardId = `alert-${id}`;
+
       if (document.getElementById(cardId)) {
         if (category === 'SafeWalk') updateSafeWalkCard(data);
         return;
@@ -535,11 +636,11 @@
       let borderClass = "border-slate-600 bg-slate-700/50";
       let icon = "📌";
 
-      if (finalCategory === 'SOS') {
+      if (isSOS) {
         badgeClass = "bg-red-600 text-white animate-pulse font-bold";
         borderClass = "border-red-500/60 bg-red-950/40 shadow-lg shadow-red-900/30";
         icon = "🚨";
-      } else if (finalCategory === 'SafeWalk') {
+      } else if (isSafeWalk) {
         badgeClass = "bg-indigo-600 text-white font-bold";
         borderClass = "border-indigo-500/50 bg-indigo-950/30 shadow-md shadow-indigo-950/20";
         icon = "🚶";
@@ -581,9 +682,9 @@
         const distRemaining = data.distanceRemaining || data.distRemainingKm || '0.0';
         const etaText = data.eta || '1 นาที';
         const speedText = typeof data.speed !== 'undefined' ? Number(data.speed).toFixed(1) : '0.0';
-        const routeStatus = data.routeStatus || (data.status === 'completed' ? 'ถึงปลายทางแล้ว' : 'กำลังเดินทาง');
-        const isDeviated = routeStatus === 'ออกนอกเส้นทาง' || data.status === 'deviated';
-        const isCompleted = routeStatus === 'ถึงปลายทางแล้ว' || data.status === 'completed';
+        const routeStatus = data.routeStatus || (data.status === 'completed' || data.status === 'COMPLETED' ? 'ถึงปลายทางแล้ว' : 'ON_ROUTE');
+        const isDeviated = routeStatus.includes('DEVIATION') || routeStatus === 'ออกนอกเส้นทาง' || data.status === 'deviated';
+        const isCompleted = routeStatus === 'ถึงปลายทางแล้ว' || data.status === 'completed' || data.status === 'COMPLETED';
 
         let statusBadgeClass = "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
         let statusTextColor = "text-emerald-400";
@@ -661,11 +762,11 @@
           </div>
 
           <div class="grid grid-cols-2 gap-2 pt-1">
-            <button onclick="focusSafeWalkOnMap('${data.id || cardId}', ${userLat || 16.4746}, ${userLng || 102.8234}, ${destLat || 'null'}, ${destLng || 'null'}, '${destName}')" class="w-full bg-slate-800 hover:bg-slate-900 border border-indigo-500/40 text-indigo-200 text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow-sm">
+            <button onclick="focusSafeWalkOnMap('${id}', ${userLat || 16.4746}, ${userLng || 102.8234}, ${destLat || 'null'}, ${destLng || 'null'}, '${destName}')" class="w-full bg-slate-800 hover:bg-slate-900 border border-indigo-500/40 text-indigo-200 text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow-sm">
               <i class="fa-solid fa-map-location-dot text-indigo-400"></i>
               <span>ดูเส้นทาง & หมุด</span>
             </button>
-            <a href="tel:0817080088" onclick="logAdminCallback('${userDisplay}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
+            <a href="tel:043202191" onclick="logAdminCallback('${userDisplay}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
               <i class="fa-solid fa-phone-volume"></i>
               <span>โทรกลับ User</span>
             </a>
@@ -698,21 +799,74 @@
               <i class="fa-solid fa-crosshairs text-sky-400"></i>
               <span>ปักหมุด</span>
             </button>
-            <a href="tel:0817080088" onclick="logAdminCallback('${data.user || 'นักศึกษา'}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
-              <i class="fa-solid fa-phone-volume"></i>
-              <span>โทรกลับ User</span>
+            <a href="tel:043202191" onclick="logAdminCallback('${data.user || 'ผู้แจ้งเหตุ'}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
+              <i class="fa-solid fa-phone"></i>
+              <span>โทรกลับ</span>
             </a>
           </div>
         `;
       }
 
       container.prepend(div);
-      updateTotalAlertCounter();
     }
 
+    function updateSafeWalkCard(data) {
+      const id = data.id || data.sessionId;
+      const cardId = `alert-${id}`;
+      const card = document.getElementById(cardId);
+      if (!card) {
+        addAlertCard(data, 'SafeWalk');
+        return;
+      }
+
+      const distRemaining = data.distanceRemaining || data.distRemainingKm || '0.0';
+      const etaText = data.eta || '1 นาที';
+      const speedText = typeof data.speed !== 'undefined' ? Number(data.speed).toFixed(1) : '0.0';
+      const routeStatus = data.routeStatus || (data.status === 'completed' || data.status === 'COMPLETED' ? 'ถึงปลายทางแล้ว' : 'ON_ROUTE');
+      const isDeviated = routeStatus.includes('DEVIATION') || routeStatus === 'ออกนอกเส้นทาง' || data.status === 'deviated';
+      const isCompleted = routeStatus === 'ถึงปลายทางแล้ว' || data.status === 'completed' || data.status === 'COMPLETED';
+
+      const distEl = document.getElementById(`sw-dist-${cardId}`);
+      if (distEl) distEl.innerText = `${distRemaining} กม.`;
+
+      const etaEl = document.getElementById(`sw-eta-${cardId}`);
+      if (etaEl) etaEl.innerText = `${etaText}`;
+
+      const speedEl = document.getElementById(`sw-speed-${cardId}`);
+      if (speedEl) speedEl.innerText = `${speedText} km/h`;
+
+      const routeStatusEl = document.getElementById(`sw-routestatus-${cardId}`);
+      if (routeStatusEl) {
+        routeStatusEl.innerText = routeStatus;
+        routeStatusEl.className = isDeviated ? "text-red-400 font-bold" : (isCompleted ? "text-blue-400 font-bold" : "text-emerald-400 font-bold");
+      }
+
+      const badgeEl = document.getElementById(`sw-status-badge-${cardId}`);
+      if (badgeEl) {
+        if (isDeviated) {
+          badgeEl.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse";
+          badgeEl.innerText = "⚠️ ออกนอกเส้นทาง";
+        } else if (isCompleted) {
+          badgeEl.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40";
+          badgeEl.innerText = "🏁 ถึงปลายทางแล้ว";
+        } else {
+          badgeEl.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+          badgeEl.innerText = "🟢 กำลังเดินทาง";
+        }
+      }
+
+      const updatedEl = document.getElementById(`sw-updated-${cardId}`);
+      if (updatedEl) {
+        updatedEl.innerHTML = `<i class="fa-solid fa-rotate mr-1 text-[9px]"></i>อัปเดต ${data.lastUpdatedAt || data.time || 'เมื่อครู่'}`;
+      }
+    }
+
+    // ==========================================
+    // MAP MARKERS & ROUTE MONITORING (RULE 21)
+    // ==========================================
     function updateSafeWalkMap(data) {
-      if (!adminMap) return;
-      const id = data.id || data.notificationId;
+      if (!adminMap) initAdminMap();
+      const id = data.id || data.sessionId;
       if (!id) return;
 
       const userLat = data.currentLatitude || data.lat;
@@ -721,13 +875,15 @@
       const destLng = data.destinationLongitude || data.destinationLng;
       const destName = data.destinationName || data.destination || 'จุดหมายปลายทาง';
       const userDisplay = data.user || data.userId || 'นักศึกษา';
-      const isDeviated = data.routeStatus === 'ออกนอกเส้นทาง' || data.status === 'deviated';
-      const isCompleted = data.routeStatus === 'ถึงปลายทางแล้ว' || data.status === 'completed';
+      const routeStatus = data.routeStatus || '';
+      const isDeviated = routeStatus.includes('DEVIATION') || data.status === 'deviated';
+      const isCompleted = routeStatus === 'ถึงปลายทางแล้ว' || data.status === 'completed' || data.status === 'COMPLETED';
 
-      // 1. User Marker
+      // 1. User Marker (smooth position update without re-creation)
       if (userLat && userLng) {
         if (markers[id]) {
           markers[id].setLatLng([userLat, userLng]);
+          markers[id].setPopupContent(`<b>🚶 SafeWalk: ${userDisplay}</b><br>ไปยัง: ${destName}<br>สถานะ: ${routeStatus || 'กำลังเดินทาง'}`);
         } else {
           const userIcon = L.divIcon({
             html: `<div class="bg-indigo-600 border-2 border-white rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-lg text-white font-bold animate-bounce">🚶</div>`,
@@ -735,7 +891,7 @@
             iconSize: [32, 32]
           });
           const m = L.marker([userLat, userLng], { icon: userIcon }).addTo(adminMap);
-          m.bindPopup(`<b>🚶 SafeWalk: ${userDisplay}</b><br>ไปยัง: ${destName}<br>พิกัด: ${userLat.toFixed(5)}, ${userLng.toFixed(5)}`);
+          m.bindPopup(`<b>🚶 SafeWalk: ${userDisplay}</b><br>ไปยัง: ${destName}<br>สถานะ: ${routeStatus || 'กำลังเดินทาง'}`);
           markers[id] = m;
         }
       }
@@ -759,7 +915,7 @@
       // 3. Route Polyline
       if (userLat && userLng && destLat && destLng) {
         const polyCoords = [[userLat, userLng], [destLat, destLng]];
-        const polyColor = isDeviated ? '#EF4444' : (isCompleted ? '#10B981' : '#6366F1');
+        const polyColor = isDeviated ? '#EF4444' : (isCompleted ? '#10B981' : '#3B82F6');
         const dash = isDeviated ? '6, 6' : null;
 
         if (safewalkRoutes[id]) {
@@ -776,30 +932,8 @@
       }
     }
 
-    function focusSafeWalkOnMap(id, userLat, userLng, destLat, destLng, destName) {
-      if (!adminMap) return;
-      if (userLat && userLng && destLat && destLng) {
-        const bounds = L.latLngBounds([[userLat, userLng], [destLat, destLng]]);
-        adminMap.fitBounds(bounds, { padding: [60, 60], maxZoom: 17 });
-      } else if (userLat && userLng) {
-        adminMap.setView([userLat, userLng], 17);
-      }
-      if (markers[id]) {
-        markers[id].openPopup();
-      }
-    }
-
-    function logAdminCallback(userName) {
-      const logId = Date.now();
-      caremeDb.ref('eventLogs/' + logId).set({
-        id: logId,
-        type: 'ADMIN_CALL_USER',
-        payload: { targetUser: userName },
-        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' น.'
-      });
-    }
-
     function addMapMarker(id, lat, lng, title, category) {
+      if (!adminMap) initAdminMap();
       if (markers[id]) {
         markers[id].setLatLng([lat, lng]);
         return;
@@ -823,33 +957,103 @@
       markers[id] = m;
     }
 
+    function focusSafeWalkOnMap(id, userLat, userLng, destLat, destLng, destName) {
+      if (!adminMap) initAdminMap();
+      if (userLat && userLng && destLat && destLng) {
+        const bounds = L.latLngBounds([[userLat, userLng], [destLat, destLng]]);
+        adminMap.fitBounds(bounds, { padding: [60, 60], maxZoom: 17 });
+      } else if (userLat && userLng) {
+        adminMap.setView([userLat, userLng], 17);
+      }
+      if (markers[id]) {
+        markers[id].openPopup();
+      }
+    }
+
     function focusMap(lat, lng, title) {
-      if (adminMap && lat && lng) {
+      if (!adminMap) initAdminMap();
+      if (lat && lng) {
         adminMap.setView([lat, lng], 17);
       }
     }
 
-    function clearAdminLogs() {
-      if (!verifyAdminAccess()) return;
-      if (confirm("คุณต้องการล้างประวัติการแจ้งเตือนทั้งหมดในระบบใช่หรือไม่?")) {
-        caremeDb.ref('sos').remove();
-        caremeDb.ref('reports').remove();
-        caremeDb.ref('allNotifications').remove();
-        localStorage.removeItem('careme_sos_data');
-        localStorage.removeItem('careme_report_data');
-        Object.values(markers).forEach(m => adminMap.removeLayer(m));
-        Object.values(destMarkers).forEach(m => adminMap.removeLayer(m));
-        Object.values(safewalkRoutes).forEach(r => adminMap.removeLayer(r));
-        markers = {};
-        destMarkers = {};
-        safewalkRoutes = {};
-        loadDataFromStorage();
-      }
+    // ==========================================
+    // ADMIN ACTIONS & EVENT LOGS (RULES 17, 22)
+    // ==========================================
+    function logAdminCallback(userName) {
+      const eventId = 'ev_' + Date.now();
+      const auth = getCaremeAuth();
+      caremeDb.ref('eventLogs/' + eventId).set({
+        eventId: eventId,
+        id: eventId,
+        eventType: 'ADMIN_CALL_USER',
+        userId: auth ? auth.username : 'admin',
+        timestamp: Date.now(),
+        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' น.',
+        metadata: { targetUser: userName }
+      });
     }
 
+    function openClearActiveModal() {
+      document.getElementById('modalClearActive').classList.remove('hidden');
+    }
+
+    function closeClearActiveModal() {
+      document.getElementById('modalClearActive').classList.add('hidden');
+    }
+
+    // RULE 22: Clear UI != Delete History!
+    // Safely removes completed/ended sessions from the active display and map, preserving all database history.
+    function confirmClearActiveSessions() {
+      const auth = getCaremeAuth();
+      const eventId = 'ev_' + Date.now();
+      
+      // Log clear event
+      caremeDb.ref('eventLogs/' + eventId).set({
+        eventId: eventId,
+        id: eventId,
+        eventType: 'CLEAR_ACTIVE_SESSION',
+        userId: auth ? auth.username : 'admin',
+        timestamp: Date.now(),
+        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' น.',
+        metadata: { clearedBy: auth ? auth.username : 'admin' }
+      });
+
+      // Clear completed/ended cards from UI
+      const cards = document.querySelectorAll('#alertsContainer > [id^="alert-"]');
+      cards.forEach(card => {
+        const text = card.innerText || '';
+        if (text.includes('ถึงปลายทางแล้ว') || text.includes('COMPLETED') || text.includes('เสร็จสิ้น') || text.includes('ยกเลิก')) {
+          card.remove();
+        }
+      });
+
+      // Clear completed markers and polylines from the map
+      Object.keys(safewalkRoutes).forEach(id => {
+        const session = activeSessionsCache[id];
+        if (session && (session.status === 'completed' || session.status === 'COMPLETED' || session.status === 'ended' || session.routeStatus === 'ถึงปลายทางแล้ว')) {
+          if (adminMap && safewalkRoutes[id]) adminMap.removeLayer(safewalkRoutes[id]);
+          if (adminMap && markers[id]) adminMap.removeLayer(markers[id]);
+          if (adminMap && destMarkers[id]) adminMap.removeLayer(destMarkers[id]);
+          delete safewalkRoutes[id];
+          delete markers[id];
+          delete destMarkers[id];
+          delete activeSessionsCache[id];
+        }
+      });
+
+      updateSummaryDashboardStats();
+      filterAdminFeed(currentAdminFeedFilter);
+      closeClearActiveModal();
+      alert("✅ ล้างการแสดงผลเหตุการณ์ที่เสร็จสิ้นออกจากหน้าจอแล้ว (ประวัติทั้งหมดในฐานข้อมูลยังคงถูกบันทึกไว้อย่างปลอดภัย)");
+    }
+
+    // BroadcastChannel sync
     channel.onmessage = (event) => {
       if (!verifyAdminAccess()) return;
-      const { type, payload } = event.data;
+      const { type, payload } = event.data || {};
+      if (!payload) return;
+
       if (type === 'NEW_NOTIFICATION') {
         addAlertCard(payload, payload.category);
       } else if (type === 'TRIGGER_SOS') {
@@ -870,13 +1074,18 @@
         updateSafeWalkCard({ ...payload, status: 'completed', routeStatus: 'ถึงปลายทางแล้ว' });
         updateSafeWalkMap({ ...payload, status: 'completed', routeStatus: 'ถึงปลายทางแล้ว' });
       }
+      updateSummaryDashboardStats();
     };
+
+    function initDashboard() {
+      initAdminMap();
+      loadDataFromStorage();
+      initFirebaseRealtimeListeners();
+    }
 
     window.onload = () => {
       if (verifyAdminAccess()) {
-        initAdminMap();
-        loadDataFromStorage();
-        initFirebaseRealtimeListeners();
+        initDashboard();
       }
     };
   </script>

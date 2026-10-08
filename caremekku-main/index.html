@@ -42,13 +42,16 @@
       100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
     #fullMap { height: 380px; width: 100%; border-radius: 1rem; }
-    #safeWalkMap { height: 300px; width: 100%; border-radius: 1rem; }
+    #safeWalkMap { height: 320px; width: 100%; border-radius: 1rem; }
+    #groupLiveMap { height: 280px; width: 100%; border-radius: 1rem; }
   </style>
 </head>
 <body class="flex justify-center items-center min-h-screen bg-slate-200 p-0 sm:p-4">
 
-  <!-- LOGIN OVERLAY / SCREEN -->
-  <div id="loginOverlay" class="absolute inset-0 z-50 bg-slate-900/95 flex justify-center items-center p-4 hidden">
+  <!-- ========================================== -->
+  <!-- 1. LOGIN OVERLAY (USER & ADMIN AUTH)       -->
+  <!-- ========================================== -->
+  <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-900/95 flex justify-center items-center p-4 hidden">
     <div class="w-full max-w-md bg-white rounded-[32px] shadow-2xl p-6 flex flex-col space-y-5 border-4 border-slate-700">
       <div class="text-center space-y-1">
         <div class="w-14 h-14 bg-kkuNavy text-white rounded-2xl mx-auto flex items-center justify-center shadow-lg">
@@ -68,7 +71,7 @@
         </button>
       </div>
 
-      <!-- USER LOGIN FORM -->
+      <!-- USER LOGIN FORM (ALLOWED ONLY @kkumail.com & @kku.ac.th) -->
       <div id="userLoginForm" class="space-y-4">
         <p class="text-[11px] text-slate-600 bg-blue-50 border border-blue-200 p-2.5 rounded-xl">
           ℹ️ สำหรับนักศึกษา มข. กรุณาใช้อีเมลมหาวิทยาลัย (<b class="text-kkuBlue">@kkumail.com</b> หรือ <b class="text-kkuBlue">@kku.ac.th</b>) เท่านั้น
@@ -89,7 +92,7 @@
         </div>
       </div>
 
-      <!-- ADMIN LOGIN FORM -->
+      <!-- ADMIN LOGIN FORM (USERNAME & PASSWORD) -->
       <div id="adminLoginForm" class="space-y-4 hidden">
         <p class="text-[11px] text-slate-600 bg-amber-50 border border-amber-200 p-2.5 rounded-xl">
           🔒 สำหรับเจ้าหน้าที่ศูนย์ปฏิบัติการ รปภ. มข. (Testing: <b>admin</b> / <b>admin1234</b>)
@@ -110,11 +113,13 @@
         </div>
       </div>
 
-      <div id="loginErrorMsg" class="text-center text-xs text-red-600 font-bold hidden"></div>
+      <div id="loginErrorMsg" class="text-center text-xs text-red-600 font-bold hidden bg-red-50 border border-red-200 p-2.5 rounded-xl"></div>
     </div>
   </div>
 
-  <!-- NOTIFICATION PANEL MODAL -->
+  <!-- ========================================== -->
+  <!-- 2. NOTIFICATION PANEL MODAL                -->
+  <!-- ========================================== -->
   <div id="notificationModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4">
     <div class="w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
       
@@ -176,7 +181,312 @@
     </div>
   </div>
 
-  <!-- MAIN APP CONTAINER -->
+  <!-- ========================================== -->
+  <!-- 3. GROUP / FAMILY MANAGER MODAL            -->
+  <!-- ========================================== -->
+  <div id="groupManagerModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4">
+    <div class="w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- GROUP HEADER -->
+      <div class="bg-gradient-to-r from-teal-800 to-kkuNavy text-white px-5 py-4 flex justify-between items-center shadow-sm">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center text-teal-300 text-base shadow-inner backdrop-blur-sm border border-white/10">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white" id="groupModalTitle">ระบบกลุ่มและครอบครัว (Group & Family)</h3>
+            <p class="text-[10px] text-teal-200" id="groupModalSubtitle">ดูแลคนที่คุณห่วงใยร่วมกันใน มข.</p>
+          </div>
+        </div>
+        <button onclick="closeGroupModal()" class="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center text-xs transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- GROUP TABS -->
+      <div class="flex space-x-1.5 px-4 py-2 bg-slate-100 border-b border-slate-200 text-[11px] overflow-x-auto no-scrollbar">
+        <button onclick="switchGroupTab('groups')" id="grpTabGroups" class="px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap">กลุ่มของฉัน</button>
+        <button onclick="switchGroupTab('map')" id="grpTabMap" class="px-3 py-1 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:border-teal-600 whitespace-nowrap">📍 แผนที่สมาชิกสด</button>
+        <button onclick="switchGroupTab('privacy')" id="grpTabPrivacy" class="px-3 py-1 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:border-teal-600 whitespace-nowrap">🔒 ความเป็นส่วนตัว</button>
+        <button onclick="switchGroupTab('checkin')" id="grpTabCheckin" class="px-3 py-1 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:border-teal-600 whitespace-nowrap">📍 เช็คอิน "ถึงแล้ว"</button>
+      </div>
+
+      <!-- GROUP CONTENT BODY -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar max-h-[550px] bg-slate-50/50">
+        
+        <!-- SECTION 1: GROUPS LIST & ACTIONS -->
+        <div id="grpSectionGroups" class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-700">กลุ่มที่คุณเข้าร่วมอยู่</span>
+            <div class="flex space-x-1.5">
+              <button onclick="openCreateGroupModal()" class="bg-teal-600 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold hover:bg-teal-700 transition">
+                <i class="fa-solid fa-plus mr-0.5"></i> สร้างกลุ่มใหม่
+              </button>
+              <button onclick="openJoinGroupModal()" class="bg-kkuBlue text-white px-2.5 py-1 rounded-lg text-[10px] font-bold hover:bg-blue-600 transition">
+                <i class="fa-solid fa-key mr-0.5"></i> เข้าร่วมด้วยรหัส
+              </button>
+            </div>
+          </div>
+
+          <div id="groupsListContainer" class="space-y-2">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- ACTIVE GROUP DETAILS & MEMBERS -->
+          <div id="activeGroupDetailBox" class="hidden bg-white border border-teal-200 rounded-2xl p-3.5 space-y-3 shadow-sm">
+            <div class="flex justify-between items-start border-b border-slate-100 pb-2">
+              <div>
+                <div class="flex items-center space-x-1.5">
+                  <h4 class="font-bold text-sm text-kkuNavy" id="activeGroupName">-</h4>
+                  <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-teal-100 text-teal-800" id="activeGroupType">-</span>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-0.5" id="activeGroupMeta">-</p>
+              </div>
+              <div class="flex items-center space-x-1">
+                <button onclick="showGroupInviteModal()" class="bg-amber-100 text-amber-800 hover:bg-amber-200 px-2 py-1 rounded-lg text-[10px] font-bold transition flex items-center space-x-1">
+                  <i class="fa-solid fa-qrcode"></i>
+                  <span>ชวนสมาชิก</span>
+                </button>
+                <button onclick="leaveActiveGroup()" class="bg-red-50 text-red-600 hover:bg-red-100 px-2 py-1 rounded-lg text-[10px] font-bold transition" title="ออกจากกลุ่ม">
+                  <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- MEMBERS LIST -->
+            <div>
+              <p class="text-[11px] font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span>สมาชิกในกลุ่ม (<span id="activeGroupMemberCount">0</span>)</span>
+                <span class="text-[10px] text-slate-400">ควบคุมความเป็นส่วนตัวอิสระ</span>
+              </p>
+              <div id="groupMembersContainer" class="space-y-1.5 max-h-44 overflow-y-auto no-scrollbar">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 2: GROUP LIVE MAP -->
+        <div id="grpSectionMap" class="hidden space-y-3">
+          <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-teal-800 flex items-center space-x-1.5">
+                <i class="fa-solid fa-location-dot text-teal-600"></i>
+                <span>พิกัดสมาชิกในกลุ่ม (Real-time Firebase)</span>
+              </span>
+              <span class="text-[10px] text-slate-500" id="liveMapSharingSummary">แสดงเฉพาะสมาชิกที่เปิดแชร์</span>
+            </div>
+            <div id="groupLiveMap" class="shadow-inner border border-slate-200"></div>
+            <p class="text-[10px] text-slate-400 text-center">
+              ℹ️ สมาชิกที่ตั้งค่า "ไม่แชร์ตำแหน่ง" จะไม่แสดงหมุดบนแผนที่นี้ตามมาตรการคุ้มครองความเป็นส่วนตัว
+            </p>
+          </div>
+        </div>
+
+        <!-- SECTION 3: PRIVACY CONTROLS -->
+        <div id="grpSectionPrivacy" class="hidden space-y-3">
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center space-x-2 text-kkuNavy font-bold text-xs border-b pb-2">
+              <i class="fa-solid fa-shield-halved text-base text-teal-600"></i>
+              <span>การควบคุมความเป็นส่วนตัวในการแชร์ตำแหน่ง (Location Privacy)</span>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-relaxed">
+              คุณสามารถกำหนดสิทธิ์การมองเห็นตำแหน่งของคุณต่อสมาชิกในกลุ่มได้ด้วยตัวเองตลอดเวลา เจ้าของกลุ่มไม่สามารถบังคับเปิดตำแหน่งของคุณได้
+            </p>
+
+            <div class="space-y-2 pt-1 text-xs">
+              <label class="flex items-start space-x-3 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                <input type="radio" name="privacyOption" value="ALWAYS" onchange="updateUserLocationPrivacy('ALWAYS')" class="mt-1 text-teal-600 focus:ring-teal-500" />
+                <div>
+                  <span class="font-bold text-slate-800">🟢 แชร์ตำแหน่งตลอดเวลา (Always Share)</span>
+                  <p class="text-[10px] text-slate-500">สมาชิกในกลุ่มเห็นพิกัดสดและสถานะของคุณตลอดเวลา</p>
+                </div>
+              </label>
+
+              <label class="flex items-start space-x-3 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                <input type="radio" name="privacyOption" value="SAFEWALK_ONLY" onchange="updateUserLocationPrivacy('SAFEWALK_ONLY')" class="mt-1 text-teal-600 focus:ring-teal-500" checked />
+                <div>
+                  <span class="font-bold text-indigo-700">🚶 แชร์เฉพาะระหว่าง SafeWalk (Only During SafeWalk)</span>
+                  <p class="text-[10px] text-slate-500">แชร์ตำแหน่งสด, จุดหมาย, ETA และแจ้งเตือนเมื่อออกนอกเส้นทางเฉพาะขณะใช้งาน SafeWalk เท่านั้น</p>
+                </div>
+              </label>
+
+              <label class="flex items-start space-x-3 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                <input type="radio" name="privacyOption" value="SCHEDULED" onchange="updateUserLocationPrivacy('SCHEDULED')" class="mt-1 text-teal-600 focus:ring-teal-500" />
+                <div>
+                  <span class="font-bold text-amber-700">⏱️ แชร์แบบกำหนดเวลา 2 ชม. (Scheduled 2 Hours)</span>
+                  <p class="text-[10px] text-slate-500">แชร์ตำแหน่งเป็นเวลา 2 ชั่วโมงนับจากนี้ จากนั้นจะหยุดแชร์โดยอัตโนมัติ</p>
+                </div>
+              </label>
+
+              <label class="flex items-start space-x-3 p-2.5 rounded-xl border border-red-200 bg-red-50/50 hover:bg-red-50 cursor-pointer">
+                <input type="radio" name="privacyOption" value="STOP" onchange="updateUserLocationPrivacy('STOP')" class="mt-1 text-red-600 focus:ring-red-500" />
+                <div>
+                  <span class="font-bold text-red-700">⛔ หยุดแชร์ตำแหน่ง (Stop Sharing / Not Sharing)</span>
+                  <p class="text-[10px] text-slate-500">ปิดการส่งพิกัดตำแหน่ง สมาชิกคนอื่นจะไม่เห็นตำแหน่งปัจจุบันของคุณ</p>
+                </div>
+              </label>
+            </div>
+
+            <div class="bg-teal-50 border border-teal-200 p-2.5 rounded-xl text-[10px] text-teal-900 font-medium">
+              สถานะปัจจุบันของคุณ: <b id="currentPrivacyStatusBadge" class="text-teal-700">Only During SafeWalk</b>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 4: CHECK-IN "ถึงแล้ว" -->
+        <div id="grpSectionCheckin" class="hidden space-y-3">
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center space-x-2 text-kkuNavy font-bold text-xs border-b pb-2">
+              <i class="fa-solid fa-circle-check text-base text-emerald-600"></i>
+              <span>ส่งสัญญาณเช็คอิน "ถึงแล้ว" (Quick Check-in)</span>
+            </div>
+            <p class="text-[11px] text-slate-600">
+              แจ้งเตือนสมาชิกในกลุ่มทันทีว่าคุณเดินทางถึงที่หมายอย่างปลอดภัย พร้อมบันทึกพิกัดและเวลา
+            </p>
+
+            <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+              <button onclick="handleQuickCheckIn('ถึงหอพักแล้ว 🏢')" class="bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 p-3 rounded-xl font-bold text-slate-700 flex flex-col items-center space-y-1 transition">
+                <span class="text-xl">🏢</span>
+                <span>ถึงหอพักแล้ว</span>
+              </button>
+              <button onclick="handleQuickCheckIn('ถึงมหาวิทยาลัย/คณะแล้ว 🏛️')" class="bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 p-3 rounded-xl font-bold text-slate-700 flex flex-col items-center space-y-1 transition">
+                <span class="text-xl">🏛️</span>
+                <span>ถึงคณะ/เรียนแล้ว</span>
+              </button>
+              <button onclick="handleQuickCheckIn('ถึงบ้านแล้ว 🏡')" class="bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 p-3 rounded-xl font-bold text-slate-700 flex flex-col items-center space-y-1 transition">
+                <span class="text-xl">🏡</span>
+                <span>ถึงบ้านแล้ว</span>
+              </button>
+              <button onclick="handleQuickCheckIn('ถึงห้องสมุด มข. แล้ว 📚')" class="bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 p-3 rounded-xl font-bold text-slate-700 flex flex-col items-center space-y-1 transition">
+                <span class="text-xl">📚</span>
+                <span>ถึงห้องสมุดแล้ว</span>
+              </button>
+            </div>
+
+            <div class="pt-2">
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">หรือระบุข้อความสถานที่เอง:</label>
+              <div class="flex space-x-2">
+                <input type="text" id="customCheckInInput" placeholder="เช่น ถึงศูนย์อาหารคอมเพล็กซ์แล้ว" class="flex-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800" />
+                <button onclick="handleCustomCheckIn()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition">
+                  ส่งเช็คอิน
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="bg-slate-50 border-t border-slate-200 px-4 py-2.5 flex justify-end text-xs">
+        <button onclick="closeGroupModal()" class="bg-slate-800 hover:bg-black text-white font-bold text-xs px-5 py-1.5 rounded-xl transition">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CREATE GROUP -->
+  <div id="modalCreateGroup" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4">
+    <div class="bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl border border-slate-200">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-sm text-kkuNavy"><i class="fa-solid fa-users-gear text-teal-600 mr-1.5"></i>สร้างกลุ่มความปลอดภัยใหม่</h3>
+        <button onclick="document.getElementById('modalCreateGroup').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">ชื่อกลุ่ม</label>
+          <input type="text" id="newGroupNameInput" placeholder="เช่น ครอบครัวสุขสันต์, รูมเมทหอ 8" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs" />
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">ประเภทกลุ่ม</label>
+          <select id="newGroupTypeSelect" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium">
+            <option value="Family">ครอบครัว (Family)</option>
+            <option value="Friends">เพื่อนสนิท (Friends)</option>
+            <option value="University Friends">เพื่อนร่วมมหาวิทยาลัย (University Friends)</option>
+            <option value="Roommates">รูมเมท (Roommates)</option>
+          </select>
+        </div>
+        <button onclick="submitCreateGroup()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs py-2.5 rounded-xl shadow transition">
+          ยืนยันการสร้างกลุ่ม
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: JOIN GROUP -->
+  <div id="modalJoinGroup" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4">
+    <div class="bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl border border-slate-200">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-sm text-kkuNavy"><i class="fa-solid fa-right-to-bracket text-kkuBlue mr-1.5"></i>เข้าร่วมกลุ่มด้วยรหัสเชิญ</h3>
+        <button onclick="document.getElementById('modalJoinGroup').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">กรอกรหัสเชิญกลุ่ม (Invite Code)</label>
+          <input type="text" id="joinInviteCodeInput" placeholder="เช่น CK-839210" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs uppercase font-mono tracking-wider" />
+        </div>
+        <p class="text-[10px] text-slate-500">สอบถามรหัสเชิญ 6-8 หลักจากเจ้าของกลุ่มที่คุณต้องการเข้าร่วม</p>
+        <button onclick="submitJoinGroup()" class="w-full bg-kkuBlue hover:bg-blue-600 text-white font-bold text-xs py-2.5 rounded-xl shadow transition">
+          เข้าร่วมกลุ่มทันที
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: INVITE GROUP (INVITE CODE & QR CODE) -->
+  <div id="modalInviteGroup" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4">
+    <div class="bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl border border-slate-200 text-center">
+      <div class="flex justify-between items-center border-b pb-2 text-left">
+        <h3 class="font-bold text-sm text-kkuNavy"><i class="fa-solid fa-qrcode text-amber-500 mr-1.5"></i>เชิญสมาชิกเข้ากลุ่ม</h3>
+        <button onclick="document.getElementById('modalInviteGroup').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <p class="text-slate-600">แชร์รหัสเชิญหรือให้เพื่อนสแกน QR Code เพื่อเข้าร่วมกลุ่ม</p>
+        
+        <div class="bg-amber-50 border border-amber-200 p-3 rounded-2xl space-y-1">
+          <p class="text-[10px] text-amber-800 font-medium">รหัสเชิญกลุ่ม (Invite Code):</p>
+          <p class="text-xl font-bold font-mono text-amber-900 tracking-widest" id="inviteCodeDisplay">CK-000000</p>
+          <button onclick="copyInviteCode()" class="text-[10px] font-bold text-amber-700 hover:underline">
+            <i class="fa-regular fa-copy"></i> คัดลอกรหัส
+          </button>
+        </div>
+
+        <div class="flex flex-col items-center justify-center p-3 bg-slate-50 rounded-2xl border border-slate-200">
+          <img id="inviteQrCodeImg" src="" alt="QR Code" class="w-40 h-40 rounded-xl shadow-sm border border-slate-300" />
+          <p class="text-[10px] text-slate-500 mt-2">สแกน QR เพื่อขอเข้าร่วมกลุ่มใน CareMe KKU</p>
+        </div>
+
+        <button onclick="document.getElementById('modalInviteGroup').classList.add('hidden')" class="w-full bg-slate-800 text-white font-bold text-xs py-2.5 rounded-xl transition">
+          เสร็จสิ้น
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT SAVED PLACE -->
+  <div id="modalEditPlace" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-4">
+    <div class="bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl border border-slate-200">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-sm text-kkuNavy"><i class="fa-solid fa-pen text-amber-500 mr-1.5"></i>แก้ไขชื่อสถานที่โปรด</h3>
+        <button onclick="document.getElementById('modalEditPlace').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <input type="hidden" id="editPlaceIdInput" />
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">ชื่อสถานที่</label>
+          <input type="text" id="editPlaceNameInput" placeholder="เช่น หอพัก 8 หลัง" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium" />
+        </div>
+        <button onclick="submitEditSavedPlace()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs py-2.5 rounded-xl shadow transition">
+          บันทึกการแก้ไข
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 4. MAIN APP CONTAINER                      -->
+  <!-- ========================================== -->
   <div class="w-full max-w-md bg-white min-h-screen sm:min-h-[844px] sm:rounded-[36px] shadow-2xl flex flex-col overflow-hidden relative border-0 sm:border-8 border-slate-800">
     
     <!-- TOP HEADER -->
@@ -234,9 +544,12 @@
         </button>
       </div>
 
-      <!-- TAB 1: HOME -->
+      <!-- ========================================== -->
+      <!-- TAB 1: HOME                                -->
+      <!-- ========================================== -->
       <div id="tabHome" class="space-y-4">
-        <!-- ADMIN OPERATION BUTTON (ADMIN ONLY) -->
+        
+        <!-- ADMIN OPERATION BUTTON (SHOWN ONLY TO ADMIN) -->
         <div id="adminHomeBanner" class="hidden bg-gradient-to-r from-slate-900 to-slate-800 border-2 border-amber-400/40 rounded-3xl p-4 text-white shadow-xl space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
@@ -252,7 +565,7 @@
           </div>
           <button onclick="openAdminOperation()" id="btnAdminHomeOperation" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs py-3 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 active:scale-98">
             <i class="fa-solid fa-desktop text-base"></i>
-            <span>เข้าสู่ Operation / Command Center</span>
+            <span>เข้าสู่หน้า Operation / Command Center</span>
             <i class="fa-solid fa-arrow-right text-xs"></i>
           </button>
         </div>
@@ -272,27 +585,57 @@
           </div>
         </div>
 
-        <!-- QUICK ACTIONS MENU -->
+        <!-- QUICK ACTIONS MENU (4 ICONS) -->
         <div>
           <h3 class="font-bold text-kkuNavy text-sm mb-3">เมนูด่วน</h3>
-          <div class="grid grid-cols-3 gap-3">
-            <button onclick="switchTab('report')" class="bg-slate-50 border border-slate-200/80 hover:border-kkuBlue p-3 rounded-2xl flex flex-col items-center text-center transition group">
-              <div class="w-10 h-10 bg-blue-100 text-kkuBlue rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition">
-                <i class="fa-solid fa-file-circle-exclamation text-lg"></i>
+          <div class="grid grid-cols-4 gap-2">
+            <button onclick="switchTab('report')" class="bg-slate-50 border border-slate-200/80 hover:border-kkuBlue p-2.5 rounded-2xl flex flex-col items-center text-center transition group">
+              <div class="w-9 h-9 bg-blue-100 text-kkuBlue rounded-xl flex items-center justify-center mb-1.5 group-hover:scale-110 transition">
+                <i class="fa-solid fa-file-circle-exclamation text-base"></i>
               </div>
-              <span class="text-xs font-bold text-slate-700">แจ้งเหตุ</span>
+              <span class="text-[11px] font-bold text-slate-700">แจ้งเหตุ</span>
             </button>
-            <button onclick="switchTab('map')" class="bg-slate-50 border border-slate-200/80 hover:border-kkuBlue p-3 rounded-2xl flex flex-col items-center text-center transition group">
-              <div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition">
-                <i class="fa-solid fa-map-location-dot text-lg"></i>
+            <button onclick="switchTab('map')" class="bg-slate-50 border border-slate-200/80 hover:border-kkuBlue p-2.5 rounded-2xl flex flex-col items-center text-center transition group">
+              <div class="w-9 h-9 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-1.5 group-hover:scale-110 transition">
+                <i class="fa-solid fa-map-location-dot text-base"></i>
               </div>
-              <span class="text-xs font-bold text-slate-700">แผนที่</span>
+              <span class="text-[11px] font-bold text-slate-700">แผนที่</span>
             </button>
-            <button onclick="switchTab('safewalk')" class="bg-slate-50 border border-slate-200/80 hover:border-kkuBlue p-3 rounded-2xl flex flex-col items-center text-center transition group">
-              <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition">
-                <i class="fa-solid fa-shoe-prints text-lg"></i>
+            <button onclick="switchTab('safewalk')" class="bg-slate-50 border border-slate-200/80 hover:border-kkuBlue p-2.5 rounded-2xl flex flex-col items-center text-center transition group">
+              <div class="w-9 h-9 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-1.5 group-hover:scale-110 transition">
+                <i class="fa-solid fa-shoe-prints text-base"></i>
               </div>
-              <span class="text-xs font-bold text-slate-700">Safe Walk</span>
+              <span class="text-[11px] font-bold text-slate-700">Safe Walk</span>
+            </button>
+            <button onclick="openGroupModal()" class="bg-slate-50 border border-slate-200/80 hover:border-teal-600 p-2.5 rounded-2xl flex flex-col items-center text-center transition group">
+              <div class="w-9 h-9 bg-teal-100 text-teal-600 rounded-xl flex items-center justify-center mb-1.5 group-hover:scale-110 transition">
+                <i class="fa-solid fa-users text-base"></i>
+              </div>
+              <span class="text-[11px] font-bold text-slate-700">กลุ่ม/ครอบครัว</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- QUICK CHECK-IN & GROUP CARD (ON HOME) -->
+        <div class="bg-gradient-to-r from-teal-50 to-blue-50 border border-teal-200 rounded-2xl p-3.5 space-y-2">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+              <span class="text-xs font-bold text-teal-900">เช็คอินด่วนให้ครอบครัวทราบ</span>
+            </div>
+            <button onclick="openGroupModal('checkin')" class="text-[10px] text-teal-700 font-bold hover:underline">
+              ดูทั้งหมด <i class="fa-solid fa-chevron-right text-[8px]"></i>
+            </button>
+          </div>
+          <div class="flex space-x-2 overflow-x-auto no-scrollbar pt-1">
+            <button onclick="handleQuickCheckIn('ถึงหอพักแล้ว 🏢')" class="bg-white hover:bg-emerald-50 border border-teal-200 text-teal-900 px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap shadow-sm transition">
+              🏢 ถึงหอแล้ว
+            </button>
+            <button onclick="handleQuickCheckIn('ถึงคณะ/มข. แล้ว 🏛️')" class="bg-white hover:bg-emerald-50 border border-teal-200 text-teal-900 px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap shadow-sm transition">
+              🏛️ ถึงคณะแล้ว
+            </button>
+            <button onclick="handleQuickCheckIn('ถึงบ้านแล้ว 🏡')" class="bg-white hover:bg-emerald-50 border border-teal-200 text-teal-900 px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap shadow-sm transition">
+              🏡 ถึงบ้านแล้ว
             </button>
           </div>
         </div>
@@ -307,7 +650,9 @@
         </div>
       </div>
 
-      <!-- TAB 2: REPORT -->
+      <!-- ========================================== -->
+      <!-- TAB 2: REPORT                              -->
+      <!-- ========================================== -->
       <div id="tabReport" class="hidden space-y-4">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
           <div class="flex items-center space-x-2 text-kkuBlue font-bold text-base border-b pb-2">
@@ -324,7 +669,7 @@
                 <option value="👁 พบบุคคลสงสัย / ก่อความรำคาญ">👁️ พบบุคคลสงสัย / ก่อความรำคาญ</option>
                 <option value="💥 อุบัติเหตุจราจรใน มข.">💥 อุบัติเหตุจราจรใน มข.</option>
                 <option value="🐍 สัตว์พิษ / งู / สัตว์ร้าย">🐍 สัตว์พิษ / งู / สัตว์ร้าย</option>
-                <option value="🛠️️ สิ่งชำรุดเสี่ยงอันตราย">🛠️ สิ่งชำรุดเสี่ยงอันตราย</option>
+                <option value="🛠️ สิ่งชำรุดเสี่ยงอันตราย">🛠️ สิ่งชำรุดเสี่ยงอันตราย</option>
               </select>
             </div>
 
@@ -361,7 +706,9 @@
         </div>
       </div>
 
-      <!-- TAB 3: MAP -->
+      <!-- ========================================== -->
+      <!-- TAB 3: MAP                                 -->
+      <!-- ========================================== -->
       <div id="tabMap" class="hidden space-y-4">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
           <div class="flex justify-between items-center border-b pb-2">
@@ -398,14 +745,18 @@
         </div>
       </div>
 
-      <!-- TAB 4: SAFE WALK (WITH OSRM ROUTING, LEAFLET MAP, SAVED PLACES) -->
+      <!-- ========================================== -->
+      <!-- TAB 4: SAFE WALK (REAL ROAD ROUTING OSRM)  -->
+      <!-- ========================================== -->
       <div id="tabSafewalk" class="hidden space-y-4">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
           <div class="flex items-center space-x-2 text-indigo-600 font-bold text-base border-b pb-2">
             <i class="fa-solid fa-person-walking-arrow-right text-xl"></i>
-            <span>บริการ Safe Walk (เดินกลับอุ่นใจ - OSRM Routing)</span>
+            <span>บริการ Safe Walk (นำทางปลอดภัยตามถนนจริง)</span>
           </div>
-          <p class="text-xs text-slate-600">คลิกบนแผนที่, ค้นหาสถานที่, หรือลากหมุดปลายทาง ระบบจะคำนวณเส้นทางตามถนนจริง (OSRM) พร้อมระยะทางและ ETA แม่นยำ</p>
+          <p class="text-xs text-slate-600">
+            เลือกปลายทางบนแผนที่ หรือค้นหาสถานที่ ระบบจะคำนวณเส้นทางตามโครงข่ายถนนจริง (OSRM Provider) พร้อมตรวจจับการออกนอกเส้นทางแบบ Real-time
+          </p>
           
           <div class="space-y-3 pt-1">
             <!-- SEARCH LOCATION -->
@@ -421,8 +772,14 @@
 
             <!-- SAFE WALK LEAFLET MAP (CLICKABLE & DRAGGABLE) -->
             <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">📍 แผนที่เลือกจุดหมาย (คลิกบนแผนที่หรือลากหมุดสีน้ำเงินเพื่อเปลี่ยนที่)</label>
+              <label class="block text-xs font-bold text-slate-700 mb-1">📍 แผนที่เลือกจุดหมาย (คลิกบนแผนที่หรือลากหมุดสีแดงเพื่อเปลี่ยนตำแหน่ง)</label>
               <div id="safeWalkMap" class="shadow-inner border border-slate-200"></div>
+            </div>
+
+            <!-- ROUTE ERROR MESSAGE -->
+            <div id="routeErrorMsg" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-xs font-bold flex items-center space-x-2">
+              <i class="fa-solid fa-triangle-exclamation text-base"></i>
+              <span id="routeErrorText">ไม่พบเส้นทางถนนสำหรับจุดหมายปลายทางนี้</span>
             </div>
 
             <!-- ROUTE INFO CARD -->
@@ -433,13 +790,18 @@
                   <i class="fa-solid fa-bookmark"></i> บันทึกสถานที่นี้
                 </button>
               </div>
+              <div class="text-[10px] text-slate-500 font-mono" id="routeDestCoordsDisplay">พิกัด: -</div>
               <div class="grid grid-cols-2 gap-2 text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200">
-                <div>📏 ระยะทางจริงตามถนน: <span id="routeDistText" class="font-bold text-kkuBlue">- กม.</span></div>
+                <div>📏 ระยะทางถนนจริง: <span id="routeDistText" class="font-bold text-kkuBlue">- กม.</span></div>
                 <div>⏱️ เวลาเดินทาง (ETA): <span id="routeEtaText" class="font-bold text-emerald-600">- นาที</span></div>
               </div>
-              <div>🚶 วิธีเดินทาง: เดินเท้าตามเส้นทางปลอดภัย มข.</div>
+              <div class="text-[11px] text-slate-500 flex items-center justify-between">
+                <span>🚶 ระบบนำทาง: OSRM Real Road Provider</span>
+                <span class="text-emerald-600 font-bold" id="routeStatusBadge">พร้อมเริ่มเดิน</span>
+              </div>
             </div>
 
+            <!-- CONTROLS & START BUTTON -->
             <div id="safeWalkControls" class="pt-2">
               <button onclick="startSafeWalk()" id="btnStartSafeWalk" disabled class="w-full bg-slate-300 text-slate-500 font-bold text-xs py-3 rounded-xl shadow-none transition flex items-center justify-center space-x-2 cursor-not-allowed">
                 <i class="fa-solid fa-play"></i>
@@ -447,32 +809,43 @@
               </button>
             </div>
 
-            <div id="activeSafeWalkBox" class="hidden bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-center space-y-2">
-              <div class="text-indigo-700 font-bold text-xs flex items-center justify-center space-x-1">
+            <!-- ACTIVE SAFEWALK STATUS BOX -->
+            <div id="activeSafeWalkBox" class="hidden bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-center space-y-2.5">
+              <div class="text-indigo-700 font-bold text-xs flex items-center justify-center space-x-1.5">
                 <i class="fa-solid fa-person-walking text-base animate-pulse"></i>
                 <span>กำลังดำเนินการ Safe Walk Live Tracking...</span>
               </div>
               <p class="text-xs text-indigo-900 font-bold" id="activeDestText">ปลายทาง: -</p>
-              <div class="grid grid-cols-2 gap-2 text-[11px] text-indigo-800 bg-white p-2.5 rounded-xl border border-indigo-100">
-                <div>ความเร็ว: <span id="swSpeed" class="font-bold">0.0</span> กม./ชม.</div>
-                <div>ระยะทางคงเหลือ: <span id="swDistRemaining" class="font-bold">-</span></div>
+              
+              <!-- Real-time metrics -->
+              <div class="grid grid-cols-3 gap-1.5 text-[10px] text-indigo-900 bg-white p-2 rounded-xl border border-indigo-100">
+                <div>ความเร็ว: <b id="swSpeed" class="text-xs block text-slate-800">0.0</b> กม./ชม.</div>
+                <div>ระยะทางคงเหลือ: <b id="swDistRemaining" class="text-xs block text-kkuBlue">-</b></div>
+                <div>เวลาคงเหลือ: <b id="swEtaRemaining" class="text-xs block text-emerald-600">-</b></div>
               </div>
-              <button onclick="endSafeWalk()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl shadow-md transition">
-                ✅ ถึงที่หมายแล้ว (ปิด Safe Walk)
+
+              <!-- Route Deviation Status Banner -->
+              <div id="deviationStatusBanner" class="p-2 rounded-xl text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center justify-center space-x-1.5">
+                <i class="fa-solid fa-route"></i>
+                <span id="deviationStatusText">อยู่ในเส้นทางปกติ (ON_ROUTE)</span>
+              </div>
+
+              <button onclick="endSafeWalkManually()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl shadow-md transition">
+                ✅ ถึงที่หมายแล้ว (จบ Safe Walk)
               </button>
             </div>
           </div>
         </div>
 
-        <!-- SAVED PLACES SECTION (สถานที่ที่บันทึกไว้) -->
+        <!-- SAVED PLACES SECTION -->
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
           <div class="flex justify-between items-center border-b pb-2">
             <div class="flex items-center space-x-2 text-kkuNavy font-bold text-base">
               <i class="fa-solid fa-bookmark text-xl text-amber-500"></i>
               <span>⭐ สถานที่ของฉัน (Saved Places)</span>
             </div>
-            <button onclick="openAddPlaceModal()" class="text-[11px] bg-kkuBlue text-white px-2.5 py-1 rounded-lg font-bold hover:bg-blue-600">
-              <i class="fa-solid fa-plus"></i> เพิ่มสถานที่
+            <button onclick="saveCurrentDestination()" class="text-[11px] bg-kkuBlue text-white px-2.5 py-1 rounded-lg font-bold hover:bg-blue-600">
+              <i class="fa-solid fa-plus"></i> บันทึกจุดที่เลือก
             </button>
           </div>
 
@@ -483,34 +856,45 @@
           </div>
         </div>
 
-        <!-- GROUP / FAMILY & NEARBY SHARING -->
+        <!-- GROUP & FAMILY INTEGRATION CARD IN SAFEWALK -->
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
-          <div class="flex items-center space-x-2 text-kkuNavy font-bold text-base border-b pb-2">
-            <i class="fa-solid fa-users text-xl text-kkuBlue"></i>
-            <span>กลุ่มครอบครัว & แชร์ตำแหน่งใกล้เคียง</span>
+          <div class="flex items-center justify-between border-b pb-2">
+            <div class="flex items-center space-x-2 text-kkuNavy font-bold text-base">
+              <i class="fa-solid fa-users text-xl text-teal-600"></i>
+              <span>กลุ่มครอบครัว & แชร์ตำแหน่ง (Group / Family)</span>
+            </div>
+            <button onclick="openGroupModal()" class="text-[11px] bg-teal-600 text-white px-2.5 py-1 rounded-lg font-bold hover:bg-teal-700 transition">
+              จัดการกลุ่ม
+            </button>
           </div>
           
-          <div class="space-y-2">
+          <div class="space-y-2 text-xs">
             <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
               <div>
-                <p class="text-xs font-bold text-slate-800">แชร์ตำแหน่งในรัศมีใกล้เคียง (Nearby Sharing)</p>
-                <p class="text-[10px] text-slate-500">อนุญาตให้ผู้ใช้ในระยะ 500 ม. มองเห็นสถานะ Safe Walk</p>
+                <p class="font-bold text-slate-800">แชร์สถานะ Safe Walk ให้สมาชิกกลุ่ม</p>
+                <p class="text-[10px] text-slate-500" id="groupShareSafeWalkStatusText">เปิดรับการแจ้งเตือน SOS & Route Deviation อัตโนมัติ</p>
               </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="nearbyToggle" onchange="toggleNearbySharing(this)" class="sr-only peer" checked>
-                <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-              </label>
+              <button onclick="openGroupModal('privacy')" class="bg-white border border-slate-300 text-teal-800 text-[10px] font-bold px-2.5 py-1 rounded-lg hover:bg-teal-50">
+                ตั้งค่าความเป็นส่วนตัว
+              </button>
             </div>
 
-            <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs space-y-1">
-              <p class="font-bold text-kkuNavy"><i class="fa-solid fa-user-group mr-1"></i> สมาชิกกลุ่ม (My Family / Group)</p>
-              <p class="text-[11px] text-slate-600">คุณพ่อ, คุณแม่ (เปิดรับการแจ้งเตือน SOS & Route Deviation)</p>
+            <div class="flex items-center justify-between bg-teal-50 border border-teal-200 rounded-xl p-3">
+              <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-user-group text-teal-700"></i>
+                <span class="font-bold text-teal-900" id="currentActiveGroupNameLabel">ยังไม่ได้เลือกกลุ่ม</span>
+              </div>
+              <button onclick="openGroupModal('map')" class="text-teal-700 font-bold text-[10px] hover:underline">
+                <i class="fa-solid fa-map"></i> ดูแผนที่กลุ่ม
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- TAB 5: SECURITY CENTER -->
+      <!-- ========================================== -->
+      <!-- TAB 5: SECURITY CENTER                     -->
+      <!-- ========================================== -->
       <div id="tabSecurity" class="hidden space-y-4">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
           <div class="flex items-center justify-between border-b pb-2">
@@ -557,7 +941,7 @@
           <div id="adminCommandCenterLink" class="pt-2 hidden">
             <button onclick="openAdminOperation()" class="w-full bg-slate-900 hover:bg-black text-white font-bold text-xs py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2">
               <i class="fa-solid fa-desktop text-sky-400"></i>
-              <span>เข้าสู่ Operation / Command Center</span>
+              <span>เข้าสู่หน้า Operation / Command Center</span>
               <i class="fa-solid fa-arrow-right text-xs text-slate-400"></i>
             </button>
           </div>
@@ -591,10 +975,14 @@
     </nav>
   </div>
 
+  <!-- FIREBASE SCRIPTS -->
   <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-database-compat.js"></script>
 
   <script>
+    // ==========================================
+    // 5. FIREBASE INITIALIZATION & CONFIG
+    // ==========================================
     const firebaseConfig = {
       apiKey: "AIzaSyB4dGFfr6Uo-xbULZ271qpu9a0SyiHM3AE",
       authDomain: "caremekku.firebaseapp.com",
@@ -608,43 +996,69 @@
     firebase.initializeApp(firebaseConfig);
     const caremeDb = firebase.database();
 
+    // ==========================================
+    // 6. GLOBAL STATE & APP VARIABLES
+    // ==========================================
     let isOnline = true;
     let currentLat = 16.4746;
     let currentLng = 102.8234;
     let prevLat = 16.4746;
     let prevLng = 102.8234;
+    let currentAccuracy = 15;
+    let currentHeading = 0;
+    let currentSpeedKmh = 0.0;
+
     let destinationLat = null;
     let destinationLng = null;
     let destinationName = "จุดหมายปลายทางที่เลือก";
+    let destinationAddress = "มหาวิทยาลัยขอนแก่น";
+
+    // SafeWalk state
+    let activeSessionId = null;
+    let activeSessionType = null;
+    let currentRoadRouteGeometry = []; // Array of [lat, lng] from OSRM
+    let currentRoadDistanceMeters = 0;
+    let currentRoadDurationMinutes = 0;
+    let consecutiveNearDestCount = 0; // Filter for auto-complete noise
+    let consecutiveDeviationCount = 0; // Filter for deviation noise
+    let currentRouteDeviationStatus = 'ON_ROUTE'; // ON_ROUTE, ROUTE_DEVIATION, SEVERE_ROUTE_DEVIATION, CRITICAL_ROUTE_DEVIATION, ROUTE_ANOMALY
+    let lastDeviationLevelNotified = null;
+    let lastDeviationNotifiedTime = 0;
+    let lastRerouteTime = 0;
 
     let gpsInterval = null;
     let checkpointInterval = null;
-    let activeSessionId = null;
-    let activeSessionType = null;
     let offlineQueue = [];
     let selectedImageData = null;
-    let currentSpeedKmh = 0.0;
-    let isNearbySharingEnabled = true;
     let currentUserSession = null;
     const channel = new BroadcastChannel('careme_kku_channel');
 
+    // Notifications state
     let userNotifications = [];
     let currentNotifFilter = 'ALL';
-    let isCurrentlyDeviated = false;
     let toastTimeout = null;
     let visitedDangerZones = new Set();
     let hasLoggedGpsFailure = false;
+
+    // Group state
+    let userGroupsList = [];
+    let activeGroupId = null;
+    let groupMembersMap = {};
+    let groupLiveMapMarkers = {};
+    let userPrivacySetting = 'SAFEWALK_ONLY'; // ALWAYS, SAFEWALK_ONLY, SCHEDULED, STOP
+    let scheduledPrivacyExpiryTime = null;
+
+    // Maps & Markers
+    let miniMapInstance, fullMapInstance, safeWalkMapInstance, groupLiveMapInstance;
+    let userMarkerMini, userMarkerFull, userMarkerSafeWalk, userMarkerGroupMap;
+    let destinationMarkerSafeWalk = null;
+    let routePolylineSafeWalk = null;
+    let safePointMarkers = [];
 
     const dangerZones = [
       { id: 'zone_pool', name: "ทางเดินเปลี่ยวและจุดอับแสงข้างสระพลาสติก มข.", lat: 16.4760, lng: 102.8190, radiusM: 100 },
       { id: 'zone_back', name: "จุดเสี่ยงมุมอับสัญญาณหลังตึกกิจกรรมนักศึกษา", lat: 16.4715, lng: 102.8215, radiusM: 80 }
     ];
-
-    let miniMapInstance, fullMapInstance, safeWalkMapInstance;
-    let userMarkerMini, userMarkerFull, userMarkerSafeWalk;
-    let destinationMarkerSafeWalk = null;
-    let routePolylineSafeWalk = null;
-    let safePointMarkers = [];
 
     const safetyLocations = [
       { name: "ตู้แดง SOS หน้า Complex มข.", type: "BOX", lat: 16.4748, lng: 102.8238 },
@@ -657,6 +1071,120 @@
       { name: "อาคารเรียนรวม คณะวิศวกรรมศาสตร์", type: "PLACE", lat: 16.4730, lng: 102.8225 }
     ];
 
+    // ==========================================
+    // 7. ROUTING PROVIDER ABSTRACTION (OSRM)
+    // ==========================================
+    class RoutingProvider {
+      async getRoute(startCoords, destCoords) {
+        throw new Error("getRoute method must be implemented");
+      }
+    }
+
+    class OSRMRoutingProvider extends RoutingProvider {
+      constructor(baseUrl = 'https://router.project-osrm.org') {
+        super();
+        this.baseUrl = baseUrl;
+      }
+
+      async getRoute(startCoords, destCoords) {
+        // startCoords: [lat, lng], destCoords: [lat, lng]
+        const url = `${this.baseUrl}/route/v1/walking/${startCoords[1]},${startCoords[0]};${destCoords[1]},${destCoords[0]}?overview=full&geometries=geojson&steps=true`;
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`เกิดข้อผิดพลาดในการเชื่อมต่อ Routing API (HTTP ${res.status})`);
+        }
+        const data = await res.json();
+        if (!data.routes || data.routes.length === 0) {
+          throw new Error("ไม่พบเส้นทางถนนสำหรับจุดหมายปลายทางที่เลือก");
+        }
+        const r = data.routes[0];
+        if (!r.geometry || !r.geometry.coordinates || r.geometry.coordinates.length < 2) {
+          throw new Error("โครงสร้างข้อมูลเส้นทางถนนไม่สมบูรณ์ (ROUTE_ANOMALY)");
+        }
+
+        const coords = r.geometry.coordinates.map(c => [c[1], c[0]]); // Leaflet [lat, lng]
+        return {
+          distanceMeters: r.distance,
+          distanceKm: (r.distance / 1000).toFixed(2),
+          durationSeconds: r.duration,
+          durationMinutes: Math.max(1, Math.round(r.duration / 60)),
+          geometry: coords,
+          provider: 'OSRM'
+        };
+      }
+    }
+
+    const activeRoutingProvider = new OSRMRoutingProvider();
+
+    // ==========================================
+    // 8. GEODESIC POINT-TO-POLYLINE DEVIATION
+    // ==========================================
+    function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000; // meters
+      const dLat = deg2rad(lat2 - lat1);
+      const dLon = deg2rad(lon2 - lon1);
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2); 
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+      return R * c;
+    }
+
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+      return getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) / 1000;
+    }
+
+    function deg2rad(deg) {
+      return deg * (Math.PI/180);
+    }
+
+    // Shortest perpendicular distance from point P to segment [A, B]
+    function distanceToSegmentMeters(pLat, pLng, aLat, aLng, bLat, bLng) {
+      const meanLat = deg2rad((aLat + bLat) / 2);
+      const cosMeanLat = Math.cos(meanLat);
+
+      // Convert spherical delta to local planar meters
+      const R = 6371000;
+      const dx = deg2rad(bLng - aLng) * R * cosMeanLat;
+      const dy = deg2rad(bLat - aLat) * R;
+      const px = deg2rad(pLng - aLng) * R * cosMeanLat;
+      const py = deg2rad(pLat - aLat) * R;
+
+      const segLenSq = dx * dx + dy * dy;
+      if (segLenSq === 0) {
+        return Math.sqrt(px * px + py * py);
+      }
+
+      // Projection factor t clamped between 0 and 1
+      const t = Math.max(0, Math.min(1, (px * dx + py * dy) / segLenSq));
+      const projX = t * dx;
+      const projY = t * dy;
+
+      const distX = px - projX;
+      const distY = py - projY;
+      return Math.sqrt(distX * distX + distY * distY);
+    }
+
+    // Minimum distance from current GPS point to entire road polyline
+    function getDistanceToRouteGeometry(lat, lng, geometryCoords) {
+      if (!geometryCoords || geometryCoords.length < 2) return 0;
+      let minDistanceMeters = Infinity;
+
+      for (let i = 0; i < geometryCoords.length - 1; i++) {
+        const a = geometryCoords[i];
+        const b = geometryCoords[i + 1];
+        const dist = distanceToSegmentMeters(lat, lng, a[0], a[1], b[0], b[1]);
+        if (dist < minDistanceMeters) {
+          minDistanceMeters = dist;
+        }
+      }
+      return minDistanceMeters;
+    }
+
+    // ==========================================
+    // 9. AUTHENTICATION & ROLE MANAGEMENT
+    // ==========================================
     async function hashPassword(password) {
       const encoder = new TextEncoder();
       const data = encoder.encode(password);
@@ -697,10 +1225,10 @@
     }
 
     function getCaremeAuth() {
-      const authDataStr = sessionStorage.getItem('careme_auth') || localStorage.getItem('careme_auth');
-      if (!authDataStr) return null;
+      let authStr = sessionStorage.getItem('careme_auth') || localStorage.getItem('careme_auth');
+      if (!authStr) return null;
       try {
-        const auth = JSON.parse(authDataStr);
+        const auth = JSON.parse(authStr);
         sessionStorage.setItem('careme_auth', JSON.stringify(auth));
         localStorage.setItem('careme_auth', JSON.stringify(auth));
         return auth;
@@ -752,8 +1280,9 @@
         alert("⛔ ปฏิเสธการเข้าถึง: คุณไม่มีสิทธิ์เข้าสู่ส่วน Operation / Command Center");
         return;
       }
-      // Verified Admin -> navigate to Operation Center
-      window.location.href = "admin.html";
+      // Pass token in URL for cross-window / iframe verification resilience
+      const token = btoa(encodeURIComponent(JSON.stringify(auth)));
+      window.location.href = "admin.html?auth_token=" + token;
     }
 
     async function handleUserLogin() {
@@ -765,21 +1294,30 @@
         return;
       }
 
+      // STRICT USER DOMAIN ENFORCEMENT: ONLY @kkumail.com & @kku.ac.th
       const domainMatch = email.match(/@(.+)$/);
-      if (!domainMatch || (domainMatch[1] !== 'kkumail.com' && domainMatch[1] !== 'kku.ac.th')) {
-        showLoginError("กรุณาใช้บัญชีอีเมลมหาวิทยาลัยขอนแก่น (@kkumail.com หรือ @kku.ac.th)");
+      if (!domainMatch || (domainMatch[1].toLowerCase() !== 'kkumail.com' && domainMatch[1].toLowerCase() !== 'kku.ac.th')) {
+        showLoginError("กรุณาใช้อีเมลมหาวิทยาลัยขอนแก่น (@kkumail.com หรือ @kku.ac.th) เท่านั้น ไม่อนุญาตอีเมลโดเมนอื่น");
         return;
       }
 
-      setCaremeAuth({ role: 'user', id: email, email: email });
-      logEvent('USER_LOGIN', { email: email });
+      const uid = email.replace(/[.#$\[\]]/g, '_');
+      const userSession = {
+        role: 'user',
+        id: uid,
+        email: email,
+        displayName: email.split('@')[0],
+        loginTime: Date.now()
+      };
+
+      setCaremeAuth(userSession);
+      logEvent('USER_LOGIN', { email: email, userId: uid });
       document.getElementById('loginOverlay').classList.add('hidden');
       updateAdminAccessUI();
       switchTab('home');
       initAppAfterLogin();
     }
 
-    // ROBUST ADMIN LOGIN WITH FALLBACK FOR TESTING (admin / admin1234)
     async function handleAdminLogin() {
       const username = document.getElementById('adminUsernameInput').value.trim();
       const password = document.getElementById('adminPasswordInput').value;
@@ -789,41 +1327,41 @@
         return;
       }
 
-      // Fallback direct check for testing admin / admin1234 and security01 / sec01@kku
-      if ((username === 'admin' && password === 'admin1234') || (username === 'security01' && password === 'sec01@kku')) {
-        setCaremeAuth({ role: 'admin', id: username, username: username });
-        logEvent('ADMIN_LOGIN', { username: username });
-        document.getElementById('loginOverlay').classList.add('hidden');
-        updateAdminAccessUI();
-        switchTab('home');
-        initAppAfterLogin();
-        return;
-      }
+      const hashedInput = await hashPassword(password);
 
-      const hashedPassword = await hashPassword(password);
+      // Testing fallback and DB validation
+      const isTestAdmin = (username === 'admin' && password === 'admin1234') || (username === 'security01' && password === 'sec01@kku');
 
       caremeDb.ref('admins/' + username).once('value', (snapshot) => {
         const adminData = snapshot.val();
-        if (adminData && (adminData.passwordHash === hashedPassword || adminData.passwordHash === password)) {
-          setCaremeAuth({ role: 'admin', id: username, username: username });
+        if ((adminData && (adminData.passwordHash === hashedInput || adminData.passwordHash === password)) || isTestAdmin) {
+          const adminSession = {
+            role: 'admin',
+            id: username,
+            username: username,
+            displayName: 'เจ้าหน้าที่ ' + username,
+            loginTime: Date.now()
+          };
+          setCaremeAuth(adminSession);
           logEvent('ADMIN_LOGIN', { username: username });
           document.getElementById('loginOverlay').classList.add('hidden');
           updateAdminAccessUI();
-          switchTab('home');
+          switchTab('home'); // Rule: Admin lands on User Home first, with prominent Operation Center button
           initAppAfterLogin();
         } else {
-          showLoginError("ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าถึงระบบ Admin");
+          showLoginError("ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าถึงส่วนผู้ดูแลระบบ");
         }
-      }, (error) => {
-        if (username === 'admin' && password === 'admin1234') {
-          setCaremeAuth({ role: 'admin', id: username, username: username });
+      }, (err) => {
+        if (isTestAdmin) {
+          const adminSession = { role: 'admin', id: username, username: username, displayName: 'เจ้าหน้าที่ ' + username };
+          setCaremeAuth(adminSession);
           logEvent('ADMIN_LOGIN', { username: username });
           document.getElementById('loginOverlay').classList.add('hidden');
           updateAdminAccessUI();
           switchTab('home');
           initAppAfterLogin();
         } else {
-          showLoginError("ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง");
+          showLoginError("เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์ กรุณาลองใหม่อีกครั้ง");
         }
       });
     }
@@ -846,8 +1384,8 @@
     }
 
     function logoutApp() {
-      if (confirm("คุณต้องการออกจากระบบใช่หรือไม่?")) {
-        logEvent('LOGOUT', {});
+      if (confirm("คุณต้องการออกจากระบบ CareMe KKU ใช่หรือไม่?")) {
+        logEvent('LOGOUT', { userId: currentUserSession ? currentUserSession.id : null });
         clearCaremeAuth();
         window.location.reload();
       }
@@ -859,33 +1397,31 @@
       initAdminCredentials();
       loadSavedPlaces();
       loadUserNotifications();
+      initGroupSystem();
     }
 
     // ==========================================
-    // CAREME KKU NOTIFICATION SYSTEM
+    // 10. REAL-TIME NOTIFICATION SYSTEM
     // ==========================================
     function loadUserNotifications() {
       try {
         const saved = localStorage.getItem('careme_notifications');
-        if (saved) {
-          userNotifications = JSON.parse(saved);
-        } else {
-          userNotifications = [];
-        }
+        userNotifications = saved ? JSON.parse(saved) : [];
       } catch(e) {
         userNotifications = [];
       }
 
       const auth = getCaremeAuth();
       if (auth) {
-        const uid = auth.id || auth.username || auth.email;
-        caremeDb.ref(`notifications/${uid}`).limitToLast(40).once('value', (snapshot) => {
+        const uid = auth.id || 'default_user';
+        caremeDb.ref(`notifications/${uid}`).limitToLast(50).once('value', (snapshot) => {
           const val = snapshot.val();
           if (val) {
             const list = Object.values(val);
-            const existingIds = new Set(userNotifications.map(n => n.notificationId));
+            const existingIds = new Set(userNotifications.map(n => n.id || n.notificationId));
             list.forEach(item => {
-              if (!existingIds.has(item.notificationId)) {
+              const id = item.id || item.notificationId;
+              if (!existingIds.has(id)) {
                 userNotifications.unshift(item);
               }
             });
@@ -895,7 +1431,6 @@
           updateNotificationUI();
         });
       }
-
       updateNotificationUI();
     }
 
@@ -903,30 +1438,48 @@
       try {
         if (userNotifications.length > 80) userNotifications = userNotifications.slice(0, 80);
         localStorage.setItem('careme_notifications', JSON.stringify(userNotifications));
-      } catch(e) {
-        console.error("persistNotifications error:", e);
-      }
+      } catch(e) {}
     }
 
-    function createNotification({ category, type, message, relatedId, latitude, longitude, priority }) {
+    // Anti-spam tracker for notifications
+    const notifTracker = {
+      lastTimes: {},
+      lastLevels: {}
+    };
+
+    function createNotification({ category, type, message, relatedId, latitude, longitude, priority, force = false }) {
       const validCategories = ["SafeWalk", "SOS", "Group / Family", "Danger Area", "GPS", "Report"];
-      let finalCategory = validCategories.includes(category) ? category : "SafeWalk";
+      const finalCategory = validCategories.includes(category) ? category : "SafeWalk";
+
+      // Anti-spam throttling check (except SOS which is always sent immediately)
+      const now = Date.now();
+      const trackKey = `${finalCategory}_${type}`;
+      const lastSent = notifTracker.lastTimes[trackKey] || 0;
+      const cooldownMs = (finalCategory === 'SOS') ? 0 : 60000; // 60s cooldown for regular updates
+
+      if (!force && cooldownMs > 0 && (now - lastSent < cooldownMs)) {
+        console.log(`Notification throttled (cooldown active): ${trackKey}`);
+        return null;
+      }
+      notifTracker.lastTimes[trackKey] = now;
 
       const notifId = 'notif_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
       const auth = getCaremeAuth();
-      const userId = auth ? (auth.id || auth.username || auth.email || 'student_user') : 'student_user';
+      const userId = auth ? (auth.id || auth.email || 'student_user') : 'student_user';
 
+      // Rule 18: Title MUST be category system name!
       const notifObj = {
+        id: notifId,
         notificationId: notifId,
         userId: userId,
         category: finalCategory,
-        title: finalCategory, // หัวข้อต้องเป็นชื่อประเภทโดยตรงเสมอ
+        title: finalCategory, 
         type: type || 'GENERAL',
         message: message || '',
         relatedId: relatedId || null,
         latitude: latitude || currentLat,
         longitude: longitude || currentLng,
-        createdAt: Date.now(),
+        createdAt: now,
         time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
         read: false,
         priority: priority || (finalCategory === 'SOS' ? 'CRITICAL' : 'NORMAL')
@@ -936,7 +1489,7 @@
       persistNotifications();
       updateNotificationUI();
 
-      // Sync to Firebase & BroadcastChannel
+      // Sync to Firebase
       caremeDb.ref(`notifications/${userId}/${notifId}`).set(notifObj);
       caremeDb.ref(`allNotifications/${notifId}`).set(notifObj);
       channel.postMessage({ type: 'NEW_NOTIFICATION', payload: notifObj });
@@ -973,18 +1526,8 @@
       let filtered = userNotifications;
       if (currentNotifFilter === 'UNREAD') {
         filtered = userNotifications.filter(n => !n.read);
-      } else if (currentNotifFilter === 'SOS') {
-        filtered = userNotifications.filter(n => n.category === 'SOS');
-      } else if (currentNotifFilter === 'SafeWalk') {
-        filtered = userNotifications.filter(n => n.category === 'SafeWalk');
-      } else if (currentNotifFilter === 'Danger Area') {
-        filtered = userNotifications.filter(n => n.category === 'Danger Area');
-      } else if (currentNotifFilter === 'Report') {
-        filtered = userNotifications.filter(n => n.category === 'Report');
-      } else if (currentNotifFilter === 'GPS') {
-        filtered = userNotifications.filter(n => n.category === 'GPS');
-      } else if (currentNotifFilter === 'Group / Family') {
-        filtered = userNotifications.filter(n => n.category === 'Group / Family');
+      } else if (currentNotifFilter !== 'ALL') {
+        filtered = userNotifications.filter(n => n.category === currentNotifFilter);
       }
 
       if (filtered.length === 0) {
@@ -1047,6 +1590,8 @@
         handleNotificationClick(item);
       };
 
+      const notifId = item.id || item.notificationId;
+
       div.innerHTML = `
         <div class="flex justify-between items-start mb-1.5">
           <div class="flex items-center space-x-1.5">
@@ -1059,7 +1604,7 @@
           </div>
           <div class="flex items-center space-x-1.5 text-[10px] text-slate-400">
             <span><i class="fa-regular fa-clock mr-0.5"></i>${item.time || 'เมื่อครู่'}</span>
-            <button onclick="deleteSingleNotification('${item.notificationId}')" class="btn-delete-notif hover:text-red-500 p-0.5" title="ลบรายการ">
+            <button onclick="deleteSingleNotification('${notifId}')" class="btn-delete-notif hover:text-red-500 p-0.5" title="ลบรายการ">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
@@ -1068,16 +1613,16 @@
           ${item.message}
         </p>
         <div class="flex justify-between items-center mt-2 pt-1 border-t border-slate-100/80 text-[10px] text-slate-400">
-          <span class="text-kkuBlue font-medium"><i class="fa-solid fa-arrow-up-right-from-square mr-0.5"></i> แตะเพื่อเปิดหน้านี้</span>
+          <span class="text-kkuBlue font-medium"><i class="fa-solid fa-arrow-up-right-from-square mr-0.5"></i> แตะเพื่อเปิดส่วนนี้</span>
           <span>${isUnread ? '<span class="text-amber-600 font-bold">ยังไม่อ่าน</span>' : '<span class="text-slate-400">อ่านแล้ว</span>'}</span>
         </div>
       `;
-
       return div;
     }
 
     function handleNotificationClick(item) {
-      markNotificationAsRead(item.notificationId);
+      const id = item.id || item.notificationId;
+      markNotificationAsRead(id);
       toggleNotificationModal();
 
       if (item.category === 'SafeWalk') {
@@ -1091,7 +1636,7 @@
       } else if (item.category === 'GPS') {
         switchTab('map');
       } else if (item.category === 'Group / Family') {
-        switchTab('safewalk');
+        openGroupModal();
       }
     }
 
@@ -1128,19 +1673,18 @@
           }
         }
       });
-
       renderNotificationList();
     }
 
     function markNotificationAsRead(notifId) {
-      const notif = userNotifications.find(n => n.notificationId === notifId);
+      const notif = userNotifications.find(n => (n.id === notifId || n.notificationId === notifId));
       if (notif) {
         notif.read = true;
         persistNotifications();
         updateNotificationUI();
         const auth = getCaremeAuth();
         if (auth) {
-          const uid = auth.id || auth.username || auth.email;
+          const uid = auth.id || 'student_user';
           caremeDb.ref(`notifications/${uid}/${notifId}`).update({ read: true });
         }
       }
@@ -1152,20 +1696,21 @@
       updateNotificationUI();
       const auth = getCaremeAuth();
       if (auth) {
-        const uid = auth.id || auth.username || auth.email;
+        const uid = auth.id || 'student_user';
         userNotifications.forEach(n => {
-          caremeDb.ref(`notifications/${uid}/${n.notificationId}`).update({ read: true });
+          const id = n.id || n.notificationId;
+          caremeDb.ref(`notifications/${uid}/${id}`).update({ read: true });
         });
       }
     }
 
     function deleteSingleNotification(notifId) {
-      userNotifications = userNotifications.filter(n => n.notificationId !== notifId);
+      userNotifications = userNotifications.filter(n => (n.id !== notifId && n.notificationId !== notifId));
       persistNotifications();
       updateNotificationUI();
       const auth = getCaremeAuth();
       if (auth) {
-        const uid = auth.id || auth.username || auth.email;
+        const uid = auth.id || 'student_user';
         caremeDb.ref(`notifications/${uid}/${notifId}`).remove();
       }
     }
@@ -1174,7 +1719,7 @@
       if (confirm("คุณต้องการล้างประวัติการแจ้งเตือนทั้งหมดใช่หรือไม่?")) {
         const auth = getCaremeAuth();
         if (auth) {
-          const uid = auth.id || auth.username || auth.email;
+          const uid = auth.id || 'student_user';
           caremeDb.ref(`notifications/${uid}`).remove();
         }
         userNotifications = [];
@@ -1228,15 +1773,61 @@
       }
     }
 
+    // ==========================================
+    // 11. DEVICE GPS & LOCATION TRACKING
+    // ==========================================
+    function checkDeviceGPS() {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.watchPosition(
+          (pos) => {
+            prevLat = currentLat;
+            prevLng = currentLng;
+            currentLat = pos.coords.latitude;
+            currentLng = pos.coords.longitude;
+            currentAccuracy = pos.coords.accuracy || 15;
+            currentHeading = pos.coords.heading || 0;
+
+            if (pos.coords.speed !== null && pos.coords.speed >= 0) {
+              currentSpeedKmh = pos.coords.speed * 3.6;
+            } else {
+              const distKm = getDistanceFromLatLonInKm(prevLat, prevLng, currentLat, currentLng);
+              currentSpeedKmh = Math.max(0, (distKm / (2.5 / 3600)));
+            }
+
+            if (userMarkerMini) userMarkerMini.setLatLng([currentLat, currentLng]);
+            if (userMarkerFull) userMarkerFull.setLatLng([currentLat, currentLng]);
+            if (userMarkerSafeWalk) userMarkerSafeWalk.setLatLng([currentLat, currentLng]);
+            if (userMarkerGroupMap) userMarkerGroupMap.setLatLng([currentLat, currentLng]);
+
+            checkDangerZoneProximity(currentLat, currentLng);
+            syncUserLocationToFirebase();
+          },
+          (err) => {
+            console.warn("GPS Geolocation notice:", err.message);
+            if (!hasLoggedGpsFailure) {
+              hasLoggedGpsFailure = true;
+              createNotification({
+                category: "GPS",
+                type: "GPS_WARNING",
+                message: "ไม่สามารถเข้าถึงตำแหน่ง GPS ที่แม่นยำได้ / กรุณาอนุญาตตำแหน่งบนเบราว์เซอร์",
+                priority: "HIGH"
+              });
+            }
+          },
+          { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+        );
+      }
+    }
+
     function checkDangerZoneProximity(lat, lng) {
       dangerZones.forEach(zone => {
-        const distM = getDistanceFromLatLonInKm(lat, lng, zone.lat, zone.lng) * 1000;
+        const distM = getDistanceFromLatLonInMeters(lat, lng, zone.lat, zone.lng);
         if (distM <= zone.radiusM && !visitedDangerZones.has(zone.id)) {
           visitedDangerZones.add(zone.id);
           createNotification({
             category: "Danger Area",
             type: "DANGER_AREA_ENTER",
-            message: `ผู้ใช้เข้าสู่พื้นที่เฝ้าระวัง: ${zone.name}`,
+            message: `คุณกำลังเข้าสู่พื้นที่เฝ้าระวัง: ${zone.name}`,
             priority: "HIGH",
             latitude: lat,
             longitude: lng
@@ -1247,6 +1838,9 @@
       });
     }
 
+    // ==========================================
+    // 12. SAFEWALK WITH ROAD ROUTING & DEVIATION
+    // ==========================================
     function initSafeWalkMap() {
       if (!safeWalkMapInstance) {
         safeWalkMapInstance = L.map('safeWalkMap').setView([currentLat, currentLng], 15);
@@ -1254,10 +1848,16 @@
           maxZoom: 19, attribution: '&copy; Esri'
         }).addTo(safeWalkMapInstance);
 
-        userMarkerSafeWalk = L.marker([currentLat, currentLng]).addTo(safeWalkMapInstance).bindPopup("<b>ตำแหน่งปัจจุบันของคุณ</b>").openPopup();
+        const currentIcon = L.divIcon({
+          html: `<div class="bg-indigo-600 border-2 border-white rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-lg text-white font-bold">🚶</div>`,
+          className: 'custom-user-walk-icon',
+          iconSize: [32, 32]
+        });
+
+        userMarkerSafeWalk = L.marker([currentLat, currentLng], { icon: currentIcon }).addTo(safeWalkMapInstance).bindPopup("<b>ตำแหน่งปัจจุบันของคุณ</b>").openPopup();
 
         safeWalkMapInstance.on('click', (e) => {
-          setDestination(e.latlng.lat, e.latlng.lng, "พิกัด: " + e.latlng.lat.toFixed(4) + ", " + e.latlng.lng.toFixed(4));
+          setDestination(e.latlng.lat, e.latlng.lng, "พิกัดปลายทางที่เลือก");
         });
       } else {
         safeWalkMapInstance.invalidateSize();
@@ -1268,81 +1868,77 @@
       destinationLat = lat;
       destinationLng = lng;
       destinationName = name;
+      destinationAddress = name;
 
       if (destinationMarkerSafeWalk) {
         safeWalkMapInstance.removeLayer(destinationMarkerSafeWalk);
       }
 
       const destIcon = L.divIcon({
-        html: `<div class="bg-red-600 text-white border-2 border-white rounded-full w-8 h-8 flex items-center justify-center text-xs shadow-lg font-bold">📍</div>`,
+        html: `<div class="bg-red-600 text-white border-2 border-white rounded-full w-8 h-8 flex items-center justify-center text-xs shadow-lg font-bold animate-bounce">📍</div>`,
         className: 'custom-dest-icon',
         iconSize: [32, 32]
       });
 
       destinationMarkerSafeWalk = L.marker([lat, lng], { draggable: true, icon: destIcon }).addTo(safeWalkMapInstance);
-      destinationMarkerSafeWalk.bindPopup(`<b>${name}</b><br>ลากหมุดเพื่อเปลี่ยนตำแหน่ง`).openPopup();
+      destinationMarkerSafeWalk.bindPopup(`<b>${name}</b><br>ลากหมุดเพื่อปรับตำแหน่งปลายทาง`).openPopup();
 
       destinationMarkerSafeWalk.on('dragend', (event) => {
         const pos = event.target.getLatLng();
         setDestination(pos.lat, pos.lng, "พิกัดปักหมุดใหม่");
       });
 
-      calculateOSRMRoute(currentLat, currentLng, lat, lng, name);
+      calculateRealRoadRoute(currentLat, currentLng, lat, lng, name);
     }
 
-    async function calculateOSRMRoute(fromLat, fromLng, toLat, toLng, name) {
-      try {
-        const url = `https://router.project-osrm.org/route/v1/walking/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (data.routes && data.routes.length > 0) {
-          const route = data.routes[0];
-          const distKm = (route.distance / 1000).toFixed(2);
-          const etaMins = Math.max(1, Math.round(route.duration / 60));
-
-          document.getElementById('routeDestName').innerText = name;
-          document.getElementById('routeDistText').innerText = distKm + " กม.";
-          document.getElementById('routeEtaText').innerText = etaMins + " นาที";
-          document.getElementById('routeInfoCard').classList.remove('hidden');
-
-          const startBtn = document.getElementById('btnStartSafeWalk');
-          startBtn.disabled = false;
-          startBtn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2";
-          startBtn.innerHTML = '<i class="fa-solid fa-play"></i><span>เริ่มเดิน Safe Walk (ตามเส้นทางถนนจริง)</span>';
-
-          if (routePolylineSafeWalk) {
-            safeWalkMapInstance.removeLayer(routePolylineSafeWalk);
-          }
-
-          const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-          routePolylineSafeWalk = L.polyline(coords, { color: '#3B82F6', weight: 5, opacity: 0.8 }).addTo(safeWalkMapInstance);
-          safeWalkMapInstance.fitBounds(routePolylineSafeWalk.getBounds(), { padding: [50, 50] });
-        } else {
-          fallbackStraightLineRoute(fromLat, fromLng, toLat, toLng, name);
-        }
-      } catch(e) {
-        console.warn("OSRM Routing error, using fallback distance", e);
-        fallbackStraightLineRoute(fromLat, fromLng, toLat, toLng, name);
-      }
-    }
-
-    function fallbackStraightLineRoute(fromLat, fromLng, toLat, toLng, name) {
-      const distKm = getDistanceFromLatLonInKm(fromLat, fromLng, toLat, toLng);
-      const etaMins = Math.max(1, Math.round((distKm / 4.8) * 60));
-
-      document.getElementById('routeDestName').innerText = name;
-      document.getElementById('routeDistText').innerText = distKm.toFixed(2) + " กม. (เส้นตรง)";
-      document.getElementById('routeEtaText').innerText = etaMins + " นาที";
-      document.getElementById('routeInfoCard').classList.remove('hidden');
-
+    async function calculateRealRoadRoute(fromLat, fromLng, toLat, toLng, name) {
+      const errBox = document.getElementById('routeErrorMsg');
+      const infoCard = document.getElementById('routeInfoCard');
       const startBtn = document.getElementById('btnStartSafeWalk');
-      startBtn.disabled = false;
-      startBtn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2";
-      startBtn.innerHTML = '<i class="fa-solid fa-play"></i><span>เริ่มเดิน Safe Walk</span>';
+      errBox.classList.add('hidden');
 
-      if (routePolylineSafeWalk) safeWalkMapInstance.removeLayer(routePolylineSafeWalk);
-      routePolylineSafeWalk = L.polyline([[fromLat, fromLng], [toLat, toLng]], { color: '#3B82F6', weight: 4, dashArray: '5, 5' }).addTo(safeWalkMapInstance);
+      try {
+        const routeData = await activeRoutingProvider.getRoute([fromLat, fromLng], [toLat, toLng]);
+        currentRoadRouteGeometry = routeData.geometry;
+        currentRoadDistanceMeters = routeData.distanceMeters;
+        currentRoadDurationMinutes = routeData.durationMinutes;
+
+        document.getElementById('routeDestName').innerText = name;
+        document.getElementById('routeDestCoordsDisplay').innerText = `พิกัด: ${toLat.toFixed(5)}, ${toLng.toFixed(5)}`;
+        document.getElementById('routeDistText').innerText = `${routeData.distanceKm} กม.`;
+        document.getElementById('routeEtaText').innerText = `${routeData.durationMinutes} นาที`;
+        document.getElementById('routeStatusBadge').innerText = "เส้นทางถนนจริง (OSRM) แม่นยำ";
+        infoCard.classList.remove('hidden');
+
+        startBtn.disabled = false;
+        startBtn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2";
+        startBtn.innerHTML = '<i class="fa-solid fa-play"></i><span>เริ่มเดิน Safe Walk (ตามเส้นทางถนนจริง)</span>';
+
+        if (routePolylineSafeWalk) {
+          safeWalkMapInstance.removeLayer(routePolylineSafeWalk);
+        }
+
+        routePolylineSafeWalk = L.polyline(currentRoadRouteGeometry, {
+          color: '#3B82F6',
+          weight: 5,
+          opacity: 0.85
+        }).addTo(safeWalkMapInstance);
+
+        safeWalkMapInstance.fitBounds(routePolylineSafeWalk.getBounds(), { padding: [50, 50] });
+      } catch(err) {
+        console.error("Road Routing Error:", err.message);
+        currentRoadRouteGeometry = [];
+        infoCard.classList.add('hidden');
+        errBox.classList.remove('hidden');
+        document.getElementById('routeErrorText').innerText = err.message || "ไม่สามารถคำนวณเส้นทางถนนได้";
+        startBtn.disabled = true;
+        startBtn.className = "w-full bg-slate-300 text-slate-500 font-bold text-xs py-3 rounded-xl shadow-none transition flex items-center justify-center space-x-2 cursor-not-allowed";
+        startBtn.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i><span>ไม่พบเส้นทางถนน (กรุณาเลือกจุดใหม่)</span>';
+        if (routePolylineSafeWalk) {
+          safeWalkMapInstance.removeLayer(routePolylineSafeWalk);
+          routePolylineSafeWalk = null;
+        }
+      }
     }
 
     async function searchLocation() {
@@ -1367,25 +1963,26 @@
           const lat = parseFloat(place.lat);
           const lng = parseFloat(place.lon);
           safeWalkMapInstance.setView([lat, lng], 16);
-          setDestination(lat, lng, place.display_name);
+          setDestination(lat, lng, place.display_name.split(',')[0]);
         } else {
-          alert("ไม่พบสถานที่ดังกล่าวในระบบ กรุณาลองใหม่อีกครั้ง");
+          alert("ไม่พบสถานที่ดังกล่าวในเขต มข. หรือพื้นที่ใกล้เคียง");
         }
       } catch(e) {
-        alert("เกิดข้อผิดพลาดในการเชื่อมต่อค้นหาสถานที่");
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อบริการค้นหาสถานที่");
       }
     }
 
     function saveCurrentDestination() {
       if (destinationLat === null || destinationLng === null) {
-        alert("กรุณาเลือกจุดหมายบนแผนที่ก่อนบันทึก");
+        alert("กรุณาเลือกจุดหมายบนแผนที่ก่อนทำการบันทึก");
         return;
       }
 
-      const placeName = prompt("ตั้งชื่อสถานที่ที่คุณต้องการบันทึก:", destinationName || "สถานที่โปรด");
+      const placeName = prompt("ตั้งชื่อสถานที่ที่คุณต้องการบันทึก (เช่น บ้าน, หอพัก, มหาวิทยาลัย, ห้องสมุด):", destinationName || "สถานที่โปรด");
       if (!placeName) return;
 
-      const userId = currentUserSession ? currentUserSession.id : 'default_user';
+      const auth = getCaremeAuth();
+      const userId = auth ? auth.id : 'student_user';
       const placeId = 'place_' + Date.now();
       const placeData = {
         placeId: placeId,
@@ -1399,18 +1996,20 @@
       };
 
       caremeDb.ref(`savedPlaces/${userId}/${placeId}`).set(placeData);
-      alert("✅ บันทึกสถานที่ '" + placeName + "' เรียบร้อยแล้ว!");
+      alert(`✅ บันทึกสถานที่ '${placeName}' เรียบร้อยแล้ว!`);
       loadSavedPlaces();
     }
 
     function loadSavedPlaces() {
-      if (!currentUserSession) return;
-      const userId = currentUserSession.id;
+      const auth = getCaremeAuth();
+      if (!auth) return;
+      const userId = auth.id;
 
-      caremeDb.ref(`savedPlaces/${userId}`).once('value', (snapshot) => {
+      caremeDb.ref(`savedPlaces/${userId}`).on('value', (snapshot) => {
         const val = snapshot.val() || {};
         const places = Object.values(val);
         const container = document.getElementById('savedPlacesContainer');
+        if (!container) return;
 
         if (places.length === 0) {
           container.innerHTML = `<div class="text-center text-slate-400 py-6 text-xs">ยังไม่มีสถานที่บันทึกไว้ (กดปุ่ม "บันทึกสถานที่นี้" เมื่อเลือกจุดหมาย)</div>`;
@@ -1427,8 +2026,9 @@
               <p class="text-[10px] text-slate-500 truncate">${p.address || 'พิกัด มข.'}</p>
             </div>
             <div class="flex items-center space-x-1">
-              <button onclick="selectSavedPlace(${p.latitude}, ${p.longitude}, '${p.name}')" class="bg-indigo-600 text-white px-2 py-1 rounded-lg text-[10px] font-bold">ไปที่นี่</button>
-              <button onclick="deleteSavedPlace('${p.placeId}')" class="bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px]"><i class="fa-solid fa-trash"></i></button>
+              <button onclick="selectSavedPlace(${p.latitude}, ${p.longitude}, '${p.name}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded-lg text-[10px] font-bold">เลือก</button>
+              <button onclick="openEditPlaceModal('${p.placeId}', '${p.name}')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded-lg text-[10px]" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="deleteSavedPlace('${p.placeId}')" class="bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded-lg text-[10px]" title="ลบ"><i class="fa-solid fa-trash"></i></button>
             </div>
           `;
           container.appendChild(div);
@@ -1446,145 +2046,486 @@
       }, 200);
     }
 
+    function openEditPlaceModal(placeId, currentName) {
+      document.getElementById('editPlaceIdInput').value = placeId;
+      document.getElementById('editPlaceNameInput').value = currentName;
+      document.getElementById('modalEditPlace').classList.remove('hidden');
+    }
+
+    function submitEditSavedPlace() {
+      const placeId = document.getElementById('editPlaceIdInput').value;
+      const newName = document.getElementById('editPlaceNameInput').value.trim();
+      if (!newName) {
+        alert("กรุณากรอกชื่อสถานที่");
+        return;
+      }
+      const auth = getCaremeAuth();
+      if (auth) {
+        caremeDb.ref(`savedPlaces/${auth.id}/${placeId}`).update({ name: newName });
+        document.getElementById('modalEditPlace').classList.add('hidden');
+        alert("✅ แก้ไขชื่อสถานที่เรียบร้อยแล้ว");
+      }
+    }
+
     function deleteSavedPlace(placeId) {
-      if (confirm("คุณต้องการลบสถานที่นี้ออกจากรายการที่บันทึกไว้ใช่หรือไม่?") && currentUserSession) {
-        caremeDb.ref(`savedPlaces/${currentUserSession.id}/${placeId}`).remove();
-        loadSavedPlaces();
+      if (confirm("คุณต้องการลบสถานที่นี้ออกจากรายการที่บันทึกไว้ใช่หรือไม่?")) {
+        const auth = getCaremeAuth();
+        if (auth) {
+          caremeDb.ref(`savedPlaces/${auth.id}/${placeId}`).remove();
+        }
       }
     }
 
-    function logEvent(eventType, payload) {
-      const eventRecord = {
-        id: Date.now(),
-        type: eventType,
-        payload: payload,
-        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' น.'
+    // ==========================================
+    // 13. CONTINUOUS GPS TRACKING & SAFEWALK FLOW
+    // ==========================================
+    function startContinuousGPSTracking(title, type) {
+      if (gpsInterval) clearInterval(gpsInterval);
+      if (checkpointInterval) clearInterval(checkpointInterval);
+
+      activeSessionId = 'session_' + Date.now();
+      activeSessionType = type;
+      consecutiveNearDestCount = 0;
+      consecutiveDeviationCount = 0;
+      currentRouteDeviationStatus = 'ON_ROUTE';
+      lastDeviationLevelNotified = null;
+
+      const banner = document.getElementById('trackingStatusBanner');
+      document.getElementById('trackingTitle').innerText = (type === 'SOS' ? '🚨 SOS ฉุกเฉิน: ' : '🚶‍♀️ Safe Walk: ') + title;
+      banner.classList.remove('hidden');
+
+      const isSafeWalk = type === 'SAFEWALK';
+      const timeNow = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+      const auth = getCaremeAuth();
+      const userId = auth ? (auth.id || auth.email) : 'student_user';
+      const userDisplay = auth ? (auth.displayName || auth.username || auth.email) : 'นักศึกษา มข.';
+
+      const initialSessionData = {
+        sessionId: activeSessionId,
+        id: activeSessionId,
+        type: type,
+        category: isSafeWalk ? 'SafeWalk' : 'SOS',
+        title: title,
+        userId: userId,
+        user: userDisplay,
+        startLocation: "มหาวิทยาลัยขอนแก่น",
+        startLat: currentLat,
+        startLng: currentLng,
+        destination: isSafeWalk ? destinationName : null,
+        destinationName: isSafeWalk ? destinationName : null,
+        destinationAddress: isSafeWalk ? destinationAddress : null,
+        destinationLatitude: isSafeWalk ? destinationLat : null,
+        destinationLongitude: isSafeWalk ? destinationLng : null,
+        destinationLat: isSafeWalk ? destinationLat : null,
+        destinationLng: isSafeWalk ? destinationLng : null,
+        currentLatitude: currentLat,
+        currentLongitude: currentLng,
+        lat: currentLat,
+        lng: currentLng,
+        accuracy: currentAccuracy,
+        distanceRemaining: isSafeWalk ? (currentRoadDistanceMeters / 1000).toFixed(2) : "0.0",
+        distRemainingKm: isSafeWalk ? (currentRoadDistanceMeters / 1000).toFixed(2) : "0.0",
+        eta: isSafeWalk ? (currentRoadDurationMinutes + " นาที") : "1 นาที",
+        speed: currentSpeedKmh,
+        routeStatus: "ON_ROUTE",
+        status: "walking",
+        startedAt: timeNow,
+        lastUpdatedAt: timeNow,
+        time: timeNow
       };
-      caremeDb.ref('eventLogs/' + eventRecord.id).set(eventRecord);
+
+      // Realtime Database sync
+      caremeDb.ref('safeWalkSessions/' + activeSessionId).set(initialSessionData);
+      caremeDb.ref('sos/' + activeSessionId).set(initialSessionData);
+      channel.postMessage({ type: isSafeWalk ? 'START_SAFEWALK' : 'TRIGGER_SOS', payload: initialSessionData });
+
+      logEvent(isSafeWalk ? 'SAFEWALK_STARTED' : 'SOS_STARTED', initialSessionData);
+
+      // Checkpoint every 5 minutes (300,000 ms)
+      checkpointInterval = setInterval(() => {
+        const historyId = 'cp_' + Date.now();
+        const checkpoint = {
+          historyId: historyId,
+          id: historyId,
+          sessionId: activeSessionId,
+          userId: userId,
+          lat: currentLat,
+          lng: currentLng,
+          latitude: currentLat,
+          longitude: currentLng,
+          speed: currentSpeedKmh,
+          accuracy: currentAccuracy,
+          timestamp: Date.now(),
+          type: 'LOCATION_CHECKPOINT',
+          time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+        };
+        caremeDb.ref('safeWalkHistory/' + historyId).set(checkpoint);
+        logEvent('LOCATION_CHECKPOINT', checkpoint);
+      }, 300000);
+
+      // Real-time tracking loop (every 2.5 seconds)
+      gpsInterval = setInterval(() => {
+        handleTrackingIntervalTick();
+      }, 2500);
     }
 
-    function saveToLocal(key, newItem) {
-      try {
-        let list = JSON.parse(localStorage.getItem(key) || '[]');
-        list.unshift(newItem);
-        if (list.length > 50) list = list.slice(0, 50);
-        localStorage.setItem(key, JSON.stringify(list));
-      } catch(e) {
-        console.error("localStorage Save Error:", e);
+    async function handleTrackingIntervalTick() {
+      if (!activeSessionId) return;
+
+      const isSafeWalk = activeSessionType === 'SAFEWALK';
+      const timeNow = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+      const speedDisplay = currentSpeedKmh.toFixed(1);
+
+      document.getElementById('trackingCoords').innerText = `พิกัดสด: ${currentLat.toFixed(5)}, ${currentLng.toFixed(5)} | ความเร็ว: ${speedDisplay} กม./ชม.`;
+
+      let roadDistRemainingKm = "0.0";
+      let etaMins = 1;
+
+      if (isSafeWalk && destinationLat !== null && destinationLng !== null) {
+        // 1. AUTO COMPLETE DETECTION (Rule 6)
+        const distToDestMeters = getDistanceFromLatLonInMeters(currentLat, currentLng, destinationLat, destinationLng);
+        const nearThreshold = Math.max(30, currentAccuracy > 40 ? 40 : 30);
+
+        if (distToDestMeters <= nearThreshold) {
+          consecutiveNearDestCount++;
+          if (consecutiveNearDestCount >= 3) {
+            console.log("SafeWalk reached destination threshold consecutively. Auto-completing!");
+            autoCompleteSafeWalk();
+            return;
+          }
+        } else {
+          consecutiveNearDestCount = 0;
+        }
+
+        // 2. ROUTE DEVIATION DETECTION FROM REAL ROUTE GEOMETRY (Rule 7)
+        let deviationMeters = 0;
+        if (currentRoadRouteGeometry && currentRoadRouteGeometry.length >= 2) {
+          const rawDeviationMeters = getDistanceToRouteGeometry(currentLat, currentLng, currentRoadRouteGeometry);
+          // Mitigate GPS noise with accuracy factor
+          deviationMeters = Math.max(0, rawDeviationMeters - (currentAccuracy > 30 ? (currentAccuracy / 3) : 0));
+        } else {
+          deviationMeters = getDistanceFromLatLonInMeters(currentLat, currentLng, destinationLat, destinationLng);
+        }
+
+        let newStatus = 'ON_ROUTE';
+        if (deviationMeters < 120) {
+          newStatus = 'ON_ROUTE';
+          consecutiveDeviationCount = 0;
+        } else if (deviationMeters >= 120 && deviationMeters < 500) {
+          consecutiveDeviationCount++;
+          if (consecutiveDeviationCount >= 2) newStatus = 'ROUTE_DEVIATION';
+        } else if (deviationMeters >= 500 && deviationMeters < 1000) {
+          consecutiveDeviationCount++;
+          if (consecutiveDeviationCount >= 2) newStatus = 'SEVERE_ROUTE_DEVIATION';
+        } else if (deviationMeters >= 1000) {
+          consecutiveDeviationCount++;
+          if (consecutiveDeviationCount >= 2) newStatus = 'CRITICAL_ROUTE_DEVIATION';
+        }
+
+        handleRouteDeviationStatus(newStatus, Math.round(deviationMeters));
+
+        // Estimate remaining road distance
+        roadDistRemainingKm = (distToDestMeters / 1000).toFixed(2);
+        const speedWalk = currentSpeedKmh > 1.0 ? currentSpeedKmh : 4.5;
+        etaMins = Math.max(1, Math.round((parseFloat(roadDistRemainingKm) / speedWalk) * 60));
+
+        if (document.getElementById('swDistRemaining')) {
+          document.getElementById('swDistRemaining').innerText = roadDistRemainingKm + " กม.";
+        }
+        if (document.getElementById('swSpeed')) {
+          document.getElementById('swSpeed').innerText = speedDisplay;
+        }
+        if (document.getElementById('swEtaRemaining')) {
+          document.getElementById('swEtaRemaining').innerText = etaMins + " นาที";
+        }
       }
+
+      // Live Ping payload
+      const livePing = {
+        sessionId: activeSessionId,
+        id: activeSessionId,
+        type: activeSessionType,
+        category: isSafeWalk ? 'SafeWalk' : 'SOS',
+        userId: currentUserSession ? currentUserSession.id : 'student_user',
+        user: currentUserSession ? (currentUserSession.displayName || currentUserSession.email) : 'นักศึกษา มข.',
+        lat: currentLat,
+        lng: currentLng,
+        currentLatitude: currentLat,
+        currentLongitude: currentLng,
+        accuracy: currentAccuracy,
+        speed: parseFloat(speedDisplay),
+        distanceRemaining: roadDistRemainingKm,
+        distRemainingKm: roadDistRemainingKm,
+        eta: etaMins + " นาที",
+        routeStatus: currentRouteDeviationStatus,
+        status: (currentRouteDeviationStatus === 'ON_ROUTE' ? 'walking' : 'deviated'),
+        lastUpdatedAt: timeNow,
+        time: timeNow,
+        destination: isSafeWalk ? destinationName : null,
+        destinationName: isSafeWalk ? destinationName : null,
+        destinationAddress: isSafeWalk ? destinationAddress : null,
+        destinationLatitude: isSafeWalk ? destinationLat : null,
+        destinationLongitude: isSafeWalk ? destinationLng : null,
+        destinationLat: isSafeWalk ? destinationLat : null,
+        destinationLng: isSafeWalk ? destinationLng : null
+      };
+
+      caremeDb.ref('safeWalkSessions/' + activeSessionId).update(livePing);
+      caremeDb.ref('sos/' + activeSessionId).update(livePing);
+      channel.postMessage({ type: 'GPS_UPDATE', payload: livePing });
     }
 
-    function initMiniMap() {
-      if(!miniMapInstance) {
-        miniMapInstance = L.map('miniMap', { zoomControl: false }).setView([currentLat, currentLng], 15);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-          maxZoom: 19, attribution: '&copy; Esri'
-        }).addTo(miniMapInstance);
-        userMarkerMini = L.marker([currentLat, currentLng]).addTo(miniMapInstance).bindPopup("ตำแหน่งของคุณ").openPopup();
-      }
-    }
+    function handleRouteDeviationStatus(newStatus, deviationMeters) {
+      const banner = document.getElementById('deviationStatusBanner');
+      const text = document.getElementById('deviationStatusText');
 
-    function initFullMap() {
-      if(!fullMapInstance) {
-        fullMapInstance = L.map('fullMap').setView([currentLat, currentLng], 15);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-          maxZoom: 19, attribution: '&copy; Esri'
-        }).addTo(fullMapInstance);
-        
-        userMarkerFull = L.marker([currentLat, currentLng]).addTo(fullMapInstance).bindPopup("<b>คุณอยู่ที่นี่</b>").openPopup();
-        renderSafetyPoints('ALL');
-      }
-    }
+      if (newStatus !== currentRouteDeviationStatus) {
+        const prevStatus = currentRouteDeviationStatus;
+        currentRouteDeviationStatus = newStatus;
 
-    function renderSafetyPoints(typeFilter) {
-      safePointMarkers.forEach(m => fullMapInstance.removeLayer(m));
-      safePointMarkers = [];
-
-      safetyLocations.forEach(loc => {
-        if(typeFilter === 'ALL' || loc.type === typeFilter) {
-          let iconHtml = '🚨';
-          if(loc.type === 'CCTV') iconHtml = '🎥';
-          if(loc.type === 'GUARD') iconHtml = '👮';
-          if(loc.type === 'PLACE') iconHtml = '🏛️';
-
-          const customIcon = L.divIcon({
-            html: `<div class="bg-white border-2 border-slate-700 rounded-full w-7 h-7 flex items-center justify-center text-xs shadow-md">${iconHtml}</div>`,
-            className: 'custom-safe-icon',
-            iconSize: [28, 28]
+        if (newStatus === 'ON_ROUTE') {
+          if (banner) {
+            banner.className = "p-2 rounded-xl text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center justify-center space-x-1.5";
+            text.innerText = "อยู่ในเส้นทางปกติ (ON_ROUTE)";
+          }
+          if (prevStatus !== 'ON_ROUTE') {
+            logEvent('RETURNED_TO_ROUTE', { sessionId: activeSessionId });
+            createNotification({
+              category: "SafeWalk",
+              type: "RETURNED_TO_ROUTE",
+              message: "ผู้ใช้กลับเข้าสู่เส้นทางปลอดภัยแล้ว",
+              priority: "NORMAL",
+              relatedId: activeSessionId
+            });
+          }
+        } else if (newStatus === 'ROUTE_DEVIATION') {
+          if (banner) {
+            banner.className = "p-2 rounded-xl text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center justify-center space-x-1.5 animate-pulse";
+            text.innerText = `⚠️ ออกนอกเส้นทาง (${deviationMeters} ม.)`;
+          }
+          logEvent('ROUTE_DEVIATION', { sessionId: activeSessionId, deviationMeters: deviationMeters });
+          createNotification({
+            category: "SafeWalk",
+            type: "ROUTE_DEVIATION",
+            message: `ผู้ใช้ออกนอกเส้นทางถนนประมาณ ${deviationMeters} เมตร`,
+            priority: "HIGH",
+            relatedId: activeSessionId
+          });
+        } else if (newStatus === 'SEVERE_ROUTE_DEVIATION') {
+          if (banner) {
+            banner.className = "p-2 rounded-xl text-[11px] font-bold bg-orange-100 text-orange-950 border border-orange-400 flex items-center justify-center space-x-1.5 animate-pulse";
+            text.innerText = `⚠️ ออกนอกเส้นทางรุนแรง (> ${deviationMeters} ม.)`;
+          }
+          logEvent('SEVERE_ROUTE_DEVIATION', { sessionId: activeSessionId, deviationMeters: deviationMeters });
+          createNotification({
+            category: "SafeWalk",
+            type: "SEVERE_ROUTE_DEVIATION",
+            message: `เตือน: ออกนอกเส้นทางเกิน 500 เมตร (${deviationMeters} ม.)`,
+            priority: "HIGH",
+            relatedId: activeSessionId
+          });
+        } else if (newStatus === 'CRITICAL_ROUTE_DEVIATION') {
+          if (banner) {
+            banner.className = "p-2 rounded-xl text-[11px] font-bold bg-red-100 text-red-900 border border-red-500 flex items-center justify-center space-x-1.5 animate-bounce";
+            text.innerText = `🚨 วิกฤต: ออกนอกเส้นทางเกิน 1 กม. (${deviationMeters} ม.)`;
+          }
+          logEvent('CRITICAL_ROUTE_DEVIATION', { sessionId: activeSessionId, deviationMeters: deviationMeters });
+          
+          // Alert User & Admin
+          createNotification({
+            category: "SafeWalk",
+            type: "CRITICAL_ROUTE_DEVIATION",
+            message: `วิกฤต: ออกนอกเส้นทางเกิน 1 กิโลเมตร (${deviationMeters} ม.) กำลังแจ้งศูนย์ รปภ. มข.`,
+            priority: "CRITICAL",
+            relatedId: activeSessionId,
+            force: true
           });
 
-          const m = L.marker([loc.lat, loc.lng], { icon: customIcon }).addTo(fullMapInstance);
-          m.bindPopup(`<b>${loc.name}</b>`);
-          safePointMarkers.push(m);
+          // Alert Group if user allowed
+          if (userPrivacySetting !== 'STOP') {
+            sendGroupAlert('ROUTE_DEVIATION', `สมาชิกออกนอกเส้นทางวิกฤตเกิน 1 กม. (${destinationName})`);
+          }
         }
-      });
-    }
-
-    function filterMapPoints(filter) {
-      document.getElementById('btnMapAll').className = filter==='ALL' ? 'bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold whitespace-nowrap shadow-sm':'bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap';
-      document.getElementById('btnMapBox').className = filter==='BOX' ? 'bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold whitespace-nowrap shadow-sm':'bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap';
-      document.getElementById('btnMapCCTV').className = filter==='CCTV' ? 'bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold whitespace-nowrap shadow-sm':'bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap';
-      document.getElementById('btnMapGuard').className = filter==='GUARD' ? 'bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold whitespace-nowrap shadow-sm':'bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap';
-      renderSafetyPoints(filter);
-    }
-
-    window.onload = () => {
-      checkAuthSession();
-    };
-
-    function checkDeviceGPS() {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.watchPosition(
-          (pos) => {
-            prevLat = currentLat;
-            prevLng = currentLng;
-            currentLat = pos.coords.latitude;
-            currentLng = pos.coords.longitude;
-
-            if (pos.coords.speed !== null && pos.coords.speed >= 0) {
-              currentSpeedKmh = pos.coords.speed * 3.6;
-            } else {
-              const distKm = getDistanceFromLatLonInKm(prevLat, prevLng, currentLat, currentLng);
-              currentSpeedKmh = Math.max(0, (distKm / (2.5 / 3600)) );
-            }
-
-            if(userMarkerMini) userMarkerMini.setLatLng([currentLat, currentLng]);
-            if(userMarkerFull) userMarkerFull.setLatLng([currentLat, currentLng]);
-            if(userMarkerSafeWalk) userMarkerSafeWalk.setLatLng([currentLat, currentLng]);
-
-            checkDangerZoneProximity(currentLat, currentLng);
-          },
-          (err) => {
-            console.log("ใช้ตำแหน่งจำลอง KKU GPS");
-            if (!hasLoggedGpsFailure) {
-              hasLoggedGpsFailure = true;
-              createNotification({
-                category: "GPS",
-                type: "GPS_LOST",
-                message: "ไม่สามารถรับตำแหน่ง GPS ได้ / กำลังใช้ตำแหน่งจำลอง",
-                priority: "HIGH"
-              });
-            }
-          },
-          { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
-        );
       }
     }
 
-    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const dLat = deg2rad(lat2 - lat1);
-      const dLon = deg2rad(lon2 - lon1);
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2); 
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-      return R * c;
+    function startSafeWalk() {
+      if (destinationLat === null || destinationLng === null) {
+        alert("กรุณาเลือกจุดหมายปลายทางบนแผนที่ก่อนเริ่ม Safe Walk");
+        return;
+      }
+      if (!currentRoadRouteGeometry || currentRoadRouteGeometry.length === 0) {
+        alert("ไม่พบเส้นทางถนนจริง ไม่สามารถเริ่ม Safe Walk ได้");
+        return;
+      }
+
+      document.getElementById('safeWalkControls').classList.add('hidden');
+      document.getElementById('activeSafeWalkBox').classList.remove('hidden');
+      document.getElementById('activeDestText').innerText = "ปลายทาง: " + destinationName;
+
+      startContinuousGPSTracking("กำลังเดินทางไป: " + destinationName, 'SAFEWALK');
+
+      createNotification({
+        category: "SafeWalk",
+        type: "SAFEWALK_STARTED",
+        message: `เริ่ม SafeWalk ไปยัง ${destinationName}`,
+        priority: "HIGH",
+        relatedId: activeSessionId,
+        force: true
+      });
+
+      // Update location sharing to group
+      syncUserLocationToFirebase();
     }
 
-    function deg2rad(deg) {
-      return deg * (Math.PI/180);
+    function autoCompleteSafeWalk() {
+      if (gpsInterval) clearInterval(gpsInterval);
+      if (checkpointInterval) clearInterval(checkpointInterval);
+      gpsInterval = null;
+      checkpointInterval = null;
+
+      const timeNow = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+      const completedPayload = {
+        sessionId: activeSessionId,
+        id: activeSessionId,
+        status: 'COMPLETED',
+        routeStatus: 'ถึงปลายทางแล้ว',
+        completedAt: timeNow,
+        lastLatitude: currentLat,
+        lastLongitude: currentLng,
+        lastUpdatedAt: timeNow
+      };
+
+      caremeDb.ref('safeWalkSessions/' + activeSessionId).update(completedPayload);
+      caremeDb.ref('sos/' + activeSessionId).update(completedPayload);
+      channel.postMessage({ type: 'END_SAFEWALK', payload: completedPayload });
+
+      logEvent('SAFEWALK_COMPLETED', completedPayload);
+
+      createNotification({
+        category: "SafeWalk",
+        type: "SAFEWALK_COMPLETED",
+        message: `SafeWalk เสร็จสิ้น / ถึง ${destinationName} แล้ว`,
+        priority: "NORMAL",
+        relatedId: activeSessionId,
+        force: true
+      });
+
+      // Notify Group
+      if (userPrivacySetting !== 'STOP') {
+        sendGroupAlert('SAFEWALK_COMPLETED', `SafeWalk เสร็จสิ้น / ถึง ${destinationName} แล้ว`);
+      }
+
+      document.getElementById('trackingStatusBanner').classList.add('hidden');
+      document.getElementById('activeSafeWalkBox').classList.add('hidden');
+      document.getElementById('safeWalkControls').classList.remove('hidden');
+
+      alert(`🎉 SafeWalk เสร็จสิ้น! คุณเดินทางถึง ${destinationName} อย่างปลอดภัยแล้ว`);
+      activeSessionId = null;
+      syncUserLocationToFirebase();
+    }
+
+    function endSafeWalkManually() {
+      autoCompleteSafeWalk();
+    }
+
+    function stopTracking() {
+      if (gpsInterval) clearInterval(gpsInterval);
+      if (checkpointInterval) clearInterval(checkpointInterval);
+      gpsInterval = null;
+      checkpointInterval = null;
+
+      if (activeSessionId) {
+        caremeDb.ref('safeWalkSessions/' + activeSessionId).update({
+          status: 'ended',
+          routeStatus: 'ยกเลิกการเดินทาง',
+          endedAt: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+        });
+        caremeDb.ref('sos/' + activeSessionId).update({
+          status: 'ended',
+          routeStatus: 'ยกเลิกการเดินทาง'
+        });
+        logEvent('TRACKING_STOPPED', { sessionId: activeSessionId });
+      }
+
+      document.getElementById('trackingStatusBanner').classList.add('hidden');
+      document.getElementById('activeSafeWalkBox').classList.add('hidden');
+      document.getElementById('safeWalkControls').classList.remove('hidden');
+      alert("🛑 ยกเลิกการติดตามเรียบร้อยแล้ว");
+      activeSessionId = null;
+      syncUserLocationToFirebase();
+    }
+
+    // ==========================================
+    // 14. SOS EMERGENCY TRIGGER
+    // ==========================================
+    function triggerSOS() {
+      startContinuousGPSTracking("ขอความช่วยเหลือฉุกเฉิน (GPS สด)", 'SOS');
+
+      // Rule 18: title must be 'SOS'
+      createNotification({
+        category: "SOS",
+        type: "SOS_STARTED",
+        message: "มีการแจ้งเหตุฉุกเฉิน ขอความช่วยเหลือด่วน (GPS Real-time)",
+        priority: "CRITICAL",
+        relatedId: activeSessionId,
+        force: true
+      });
+
+      // Alert Group immediately
+      sendGroupAlert('SOS', "🚨 สมาชิกแจ้งเหตุฉุกเฉิน SOS ขอความช่วยเหลือด่วน!");
+      syncUserLocationToFirebase();
+    }
+
+    // ==========================================
+    // 15. REPORT ISSUE / HAZARD
+    // ==========================================
+    function submitReport() {
+      const cat = document.getElementById('reportCategory').value;
+      const loc = document.getElementById('reportLocation').value || 'บริเวณภายใน มข.';
+      const detail = document.getElementById('reportDetail').value || 'ไม่มีรายละเอียดเพิ่มเติม';
+
+      const reportId = 'rep_' + Date.now();
+      const auth = getCaremeAuth();
+      const payload = {
+        id: reportId,
+        reportId: reportId,
+        type: 'REPORT',
+        category: 'Report',
+        title: cat,
+        user: auth ? (auth.email || auth.username) : "นักศึกษา มข.",
+        location: loc,
+        detail: detail,
+        image: selectedImageData,
+        lat: currentLat,
+        lng: currentLng,
+        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+        createdAt: Date.now()
+      };
+
+      caremeDb.ref('reports/' + reportId).set(payload);
+      channel.postMessage({ type: 'SUBMIT_REPORT', payload: payload });
+      logEvent('SUBMIT_REPORT', payload);
+
+      createNotification({
+        category: "Report",
+        type: "SUBMIT_REPORT",
+        message: `มีรายงานใหม่: ${cat} ที่ ${loc}`,
+        priority: "NORMAL",
+        relatedId: reportId,
+        force: true
+      });
+
+      alert("✅ ส่งรายงานการแจ้งเหตุไปยังศูนย์ รปภ. เรียบร้อยแล้ว!");
+      
+      document.getElementById('reportLocation').value = '';
+      document.getElementById('reportDetail').value = '';
+      document.getElementById('reportImageInput').value = '';
+      selectedImageData = null;
+      document.getElementById('imagePreviewContainer').classList.add('hidden');
+      document.getElementById('imagePlaceholder').classList.remove('hidden');
+      
+      switchTab('home');
     }
 
     function previewReportImage(event) {
@@ -1618,11 +2559,9 @@
           ctx.drawImage(img, 0, 0, width, height);
 
           selectedImageData = canvas.toDataURL('image/jpeg', 0.7);
-
           document.getElementById('imagePreview').src = selectedImageData;
           document.getElementById('imagePreviewContainer').classList.remove('hidden');
           document.getElementById('imagePlaceholder').classList.add('hidden');
-          
           event.target.value = '';
         };
         img.src = e.target.result;
@@ -1630,305 +2569,622 @@
       reader.readAsDataURL(file);
     }
 
-    function dispatchEvent(type, payload) {
-      if (isOnline) {
-        channel.postMessage({ type: type, payload: payload });
-        if (type === 'TRIGGER_SOS' || type === 'START_SAFEWALK') {
-          caremeDb.ref('sos/' + payload.id).set(payload);
-        } else if (type === 'GPS_UPDATE') {
-          caremeDb.ref('sos/' + payload.id).update(payload);
-        } else if (type === 'SUBMIT_REPORT') {
-          caremeDb.ref('reports/' + payload.id).set(payload);
-        } else if (type === 'STOP_TRACKING' || type === 'END_SAFEWALK') {
-          caremeDb.ref('sos/' + payload.id).update({
-            status: type === 'END_SAFEWALK' ? 'completed' : 'ended',
-            routeStatus: type === 'END_SAFEWALK' ? 'ถึงปลายทางแล้ว' : 'ยกเลิกการเดินทาง',
-            completedAt: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
-            lastUpdatedAt: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
-          });
-        }
-      } else {
-        offlineQueue.push({ type: type, payload: payload });
-        document.getElementById('queueCount').innerText = offlineQueue.length;
-      }
-    }
+    // ==========================================
+    // 16. GROUP & FAMILY SYSTEM (REAL-TIME FIREBASE)
+    // ==========================================
+    function initGroupSystem() {
+      const auth = getCaremeAuth();
+      if (!auth) return;
+      const uid = auth.id;
 
-    function startContinuousGPSTracking(title, type) {
-      if (gpsInterval) clearInterval(gpsInterval);
-      if (checkpointInterval) clearInterval(checkpointInterval);
-
-      activeSessionId = Date.now();
-      activeSessionType = type;
-
-      const banner = document.getElementById('trackingStatusBanner');
-      document.getElementById('trackingTitle').innerText = (type === 'SOS' ? '🚨 SOS ฉุกเฉิน: ' : '🚶‍♀️ Safe Walk: ') + title;
-      banner.classList.remove('hidden');
-
-      const isSafeWalk = type === 'SAFEWALK';
-      const distInitial = (isSafeWalk && destinationLat !== null && destinationLng !== null)
-        ? getDistanceFromLatLonInKm(currentLat, currentLng, destinationLat, destinationLng).toFixed(2)
-        : "0.0";
-      const etaInitial = Math.max(1, Math.round((parseFloat(distInitial) / 4.5) * 60));
-      const timeNow = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
-
-      const initialPayload = {
-        id: activeSessionId,
-        type: type,
-        category: isSafeWalk ? 'SafeWalk' : 'SOS',
-        title: title,
-        userId: currentUserSession ? (currentUserSession.id || currentUserSession.username || currentUserSession.email) : "student_user",
-        user: currentUserSession ? (currentUserSession.username || currentUserSession.name || currentUserSession.email) : "นักศึกษา มข.",
-        startLocation: "มหาวิทยาลัยขอนแก่น",
-        startLat: currentLat,
-        startLng: currentLng,
-        destination: isSafeWalk ? (destinationName || "จุดหมายปลายทาง") : null,
-        destinationName: isSafeWalk ? (destinationName || "จุดหมายปลายทาง") : null,
-        destinationAddress: isSafeWalk ? (destinationName || "มหาวิทยาลัยขอนแก่น") : null,
-        destinationLatitude: isSafeWalk ? destinationLat : null,
-        destinationLongitude: isSafeWalk ? destinationLng : null,
-        destinationLat: isSafeWalk ? destinationLat : null,
-        destinationLng: isSafeWalk ? destinationLng : null,
-        currentLatitude: currentLat,
-        currentLongitude: currentLng,
-        lat: currentLat,
-        lng: currentLng,
-        distanceRemaining: distInitial,
-        eta: etaInitial + " นาที",
-        speed: 0.0,
-        routeStatus: "ปกติ",
-        status: "walking",
-        startedAt: timeNow,
-        lastUpdatedAt: timeNow,
-        time: timeNow
-      };
-
-      saveToLocal('careme_sos_data', initialPayload);
-      dispatchEvent(isSafeWalk ? 'START_SAFEWALK' : 'TRIGGER_SOS', initialPayload);
-      logEvent(isSafeWalk ? 'SAFEWALK_STARTED' : 'SOS_STARTED', initialPayload);
-
-      checkpointInterval = setInterval(() => {
-        const checkpoint = {
-          id: Date.now(),
-          sessionId: activeSessionId,
-          lat: currentLat,
-          lng: currentLng,
-          speed: currentSpeedKmh,
-          type: 'LOCATION_CHECKPOINT',
-          time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
-        };
-        caremeDb.ref('safeWalkHistory/' + checkpoint.id).set(checkpoint);
-        logEvent('LOCATION_CHECKPOINT', checkpoint);
-      }, 300000);
-
-      gpsInterval = setInterval(() => {
-        currentLat += (Math.random() - 0.4) * 0.0004;
-        currentLng += (Math.random() - 0.3) * 0.0004;
-
-        if(userMarkerMini) userMarkerMini.setLatLng([currentLat, currentLng]);
-        if(userMarkerFull) userMarkerFull.setLatLng([currentLat, currentLng]);
-        if(userMarkerSafeWalk) userMarkerSafeWalk.setLatLng([currentLat, currentLng]);
-
-        checkDangerZoneProximity(currentLat, currentLng);
-
-        const speedDisplay = currentSpeedKmh.toFixed(1);
-        document.getElementById('trackingCoords').innerText = `พิกัดสด: ${currentLat.toFixed(5)}, ${currentLng.toFixed(5)} | ความเร็ว: ${speedDisplay} กม./ชม.`;
+      // Listen to groups user belongs to
+      caremeDb.ref(`userGroups/${uid}`).on('value', (snapshot) => {
+        const val = snapshot.val() || {};
+        userGroupsList = Object.keys(val);
         
-        let distRemainingKm = "0.0";
-        let etaMins = 1;
-        let routeStatusStr = isCurrentlyDeviated ? "ออกนอกเส้นทาง" : "ปกติ";
-        let deviationMeters = 0;
-
-        if (destinationLat !== null && destinationLng !== null && activeSessionType === 'SAFEWALK') {
-          distRemainingKm = getDistanceFromLatLonInKm(currentLat, currentLng, destinationLat, destinationLng).toFixed(2);
-          const speedCalc = currentSpeedKmh > 0.5 ? currentSpeedKmh : 4.5;
-          etaMins = Math.max(1, Math.round((parseFloat(distRemainingKm) / speedCalc) * 60));
-
-          if (document.getElementById('swDistRemaining')) {
-            document.getElementById('swDistRemaining').innerText = distRemainingKm + " กม.";
+        if (userGroupsList.length > 0) {
+          if (!activeGroupId || !userGroupsList.includes(activeGroupId)) {
+            activeGroupId = userGroupsList[0];
           }
-          if (document.getElementById('swSpeed')) {
-            document.getElementById('swSpeed').innerText = speedDisplay;
-          }
-
-          const distanceFromStart = getDistanceFromLatLonInKm(initialPayload.lat, initialPayload.lng, currentLat, currentLng) * 1000;
-          if (distanceFromStart > 120 && !isCurrentlyDeviated) {
-            isCurrentlyDeviated = true;
-            deviationMeters = Math.round(distanceFromStart);
-            routeStatusStr = "ออกนอกเส้นทาง";
-            logEvent('ROUTE_DEVIATION', { sessionId: activeSessionId, distance: distanceFromStart });
-            createNotification({
-              category: "SafeWalk",
-              type: "ROUTE_DEVIATION",
-              message: `ผู้ใช้ออกนอกเส้นทางประมาณ ${deviationMeters} เมตร`,
-              priority: "HIGH",
-              relatedId: activeSessionId
-            });
-          } else if (distanceFromStart <= 80 && isCurrentlyDeviated) {
-            isCurrentlyDeviated = false;
-            routeStatusStr = "กลับเข้าสู่เส้นทาง";
-            logEvent('BACK_ON_TRACK', { sessionId: activeSessionId });
-            createNotification({
-              category: "SafeWalk",
-              type: "BACK_ON_TRACK",
-              message: "ผู้ใช้กลับเข้าสู่เส้นทางปลอดภัยแล้ว",
-              priority: "NORMAL",
-              relatedId: activeSessionId
-            });
-          }
+          loadActiveGroupDetails(activeGroupId);
+        } else {
+          activeGroupId = null;
+          renderGroupsListUI([]);
+          document.getElementById('activeGroupDetailBox').classList.add('hidden');
+          document.getElementById('currentActiveGroupNameLabel').innerText = "ยังไม่ได้เข้าร่วมกลุ่ม";
         }
-
-        const updateTime = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
-        const livePing = {
-          id: activeSessionId,
-          type: type,
-          category: isSafeWalk ? 'SafeWalk' : 'SOS',
-          userId: currentUserSession ? (currentUserSession.id || currentUserSession.username || currentUserSession.email) : "student_user",
-          user: currentUserSession ? (currentUserSession.username || currentUserSession.name || currentUserSession.email) : "นักศึกษา มข.",
-          lat: currentLat,
-          lng: currentLng,
-          currentLatitude: currentLat,
-          currentLongitude: currentLng,
-          speed: parseFloat(speedDisplay),
-          distanceRemaining: distRemainingKm,
-          eta: etaMins + " นาที",
-          routeStatus: routeStatusStr,
-          status: isCurrentlyDeviated ? "deviated" : "walking",
-          deviationDistance: deviationMeters,
-          lastUpdatedAt: updateTime,
-          time: updateTime,
-          destination: isSafeWalk ? destinationName : null,
-          destinationName: isSafeWalk ? destinationName : null,
-          destinationAddress: isSafeWalk ? destinationName : null,
-          destinationLatitude: isSafeWalk ? destinationLat : null,
-          destinationLongitude: isSafeWalk ? destinationLng : null,
-          destinationLat: isSafeWalk ? destinationLat : null,
-          destinationLng: isSafeWalk ? destinationLng : null
-        };
-        dispatchEvent('GPS_UPDATE', livePing);
-      }, 2500);
-    }
-
-    function stopTracking() {
-      if (gpsInterval) clearInterval(gpsInterval);
-      if (checkpointInterval) clearInterval(checkpointInterval);
-      gpsInterval = null;
-      checkpointInterval = null;
-
-      if(activeSessionId) {
-        dispatchEvent('STOP_TRACKING', { id: activeSessionId });
-        logEvent('TRACKING_STOPPED', { id: activeSessionId });
-      }
-
-      document.getElementById('trackingStatusBanner').classList.add('hidden');
-      document.getElementById('activeSafeWalkBox').classList.add('hidden');
-      document.getElementById('safeWalkControls').classList.remove('hidden');
-      alert("🛑 ยกเลิกการติดตามเรียบร้อยแล้ว");
-    }
-
-    function triggerSOS() {
-      startContinuousGPSTracking("ขอความช่วยเหลือฉุกเฉิน (GPS สด)", 'SOS');
-      createNotification({
-        category: "SOS",
-        type: "TRIGGER_SOS",
-        message: "มีการแจ้งเหตุฉุกเฉิน ขอความช่วยเหลือด่วน (GPS Real-time)",
-        priority: "CRITICAL",
-        relatedId: activeSessionId
       });
     }
 
-    function submitReport() {
-      const cat = document.getElementById('reportCategory').value;
-      const loc = document.getElementById('reportLocation').value || 'บริเวณภายใน มข.';
-      const detail = document.getElementById('reportDetail').value || 'ไม่มีรายละเอียดเพิ่มเติม';
+    function loadActiveGroupDetails(groupId) {
+      if (!groupId) return;
+      caremeDb.ref(`groups/${groupId}`).on('value', (snapshot) => {
+        const groupData = snapshot.val();
+        if (!groupData) return;
 
-      const payload = {
-        id: Date.now(),
-        type: 'REPORT',
-        title: cat,
-        user: currentUserSession ? (currentUserSession.email || currentUserSession.username) : "นักศึกษา มข.",
-        location: loc,
-        detail: detail,
-        image: selectedImageData,
-        lat: currentLat,
-        lng: currentLng,
+        document.getElementById('activeGroupName').innerText = groupData.name;
+        document.getElementById('activeGroupType').innerText = groupData.type;
+        document.getElementById('activeGroupMeta').innerText = `สร้างเมื่อ: ${groupData.createdAtStr || 'ล่าสุด'} | รหัส: ${groupData.inviteCode}`;
+        document.getElementById('activeGroupDetailBox').classList.remove('hidden');
+        document.getElementById('currentActiveGroupNameLabel').innerText = groupData.name;
+
+        // Listen to group members
+        caremeDb.ref(`groupMembers/${groupId}`).on('value', (memSnapshot) => {
+          const members = memSnapshot.val() || {};
+          groupMembersMap = members;
+          renderGroupMembersUI(members, groupData);
+          updateGroupLiveMap(members);
+        });
+      });
+    }
+
+    function renderGroupsListUI(groups) {
+      const container = document.getElementById('groupsListContainer');
+      if (!container) return;
+
+      if (userGroupsList.length === 0) {
+        container.innerHTML = `<div class="text-center text-slate-400 py-4 text-xs">คุณยังไม่ได้เข้าร่วมกลุ่มความปลอดภัยใดๆ (กดสร้างกลุ่ม หรือใช้รหัสเชิญ)</div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      userGroupsList.forEach(gid => {
+        caremeDb.ref(`groups/${gid}`).once('value', (snap) => {
+          const g = snap.val();
+          if (!g) return;
+          const isActive = gid === activeGroupId;
+          const div = document.createElement('div');
+          div.className = `flex justify-between items-center p-2.5 rounded-xl border transition cursor-pointer ${isActive ? 'bg-teal-50 border-teal-400 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50'}`;
+          div.onclick = () => {
+            activeGroupId = gid;
+            loadActiveGroupDetails(gid);
+          };
+          div.innerHTML = `
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full ${isActive ? 'bg-teal-600' : 'bg-slate-300'}"></span>
+              <span class="text-xs text-slate-800">${g.name}</span>
+              <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-normal">${g.type}</span>
+            </div>
+            <span class="text-[10px] text-teal-700 font-bold">${isActive ? 'กลุ่มที่เลือก' : 'เลือก'}</span>
+          `;
+          container.appendChild(div);
+        });
+      });
+    }
+
+    function renderGroupMembersUI(members, groupData) {
+      const container = document.getElementById('groupMembersContainer');
+      const countEl = document.getElementById('activeGroupMemberCount');
+      if (!container) return;
+
+      const memberList = Object.values(members);
+      if (countEl) countEl.innerText = memberList.length;
+
+      const auth = getCaremeAuth();
+      const currentUid = auth ? auth.id : '';
+      const isOwner = groupData.ownerId === currentUid;
+
+      container.innerHTML = '';
+      memberList.forEach(m => {
+        const div = document.createElement('div');
+        div.className = "flex justify-between items-center bg-slate-50 p-2 rounded-xl border border-slate-100 text-xs";
+        
+        let sharingBadge = '<span class="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Not Sharing</span>';
+        if (m.locationSharing === 'ALWAYS') {
+          sharingBadge = '<span class="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">Always Share</span>';
+        } else if (m.locationSharing === 'SAFEWALK_ONLY') {
+          sharingBadge = '<span class="text-[9px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-bold">SafeWalk Only</span>';
+        } else if (m.locationSharing === 'SCHEDULED') {
+          sharingBadge = '<span class="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">Scheduled</span>';
+        }
+
+        const isMe = m.userId === currentUid;
+
+        div.innerHTML = `
+          <div class="flex items-center space-x-2">
+            <div class="w-6 h-6 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px] font-bold">
+              ${(m.displayName || 'U')[0].toUpperCase()}
+            </div>
+            <div>
+              <p class="font-bold text-slate-800 text-xs">${m.displayName} ${isMe ? '(คุณ)' : ''}</p>
+              <p class="text-[9px] text-slate-400">${m.role === 'OWNER' ? '👑 เจ้าของกลุ่ม' : 'สมาชิก'}</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            ${sharingBadge}
+            ${isOwner && !isMe ? `<button onclick="removeGroupMember('${m.userId}')" class="text-red-500 hover:text-red-700 text-xs p-1" title="ลบสมาชิก"><i class="fa-solid fa-user-xmark"></i></button>` : ''}
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // Explicit Location Sharing sync
+    function syncUserLocationToFirebase() {
+      const auth = getCaremeAuth();
+      if (!auth) return;
+      const uid = auth.id;
+
+      let isSharing = false;
+      let statusStr = "Not Sharing";
+
+      if (userPrivacySetting === 'ALWAYS') {
+        isSharing = true;
+        statusStr = activeSessionType === 'SOS' ? 'SOS' : (activeSessionType === 'SAFEWALK' ? 'SafeWalk' : 'Sharing');
+      } else if (userPrivacySetting === 'SAFEWALK_ONLY') {
+        if (activeSessionType === 'SAFEWALK') {
+          isSharing = true;
+          statusStr = 'SafeWalk';
+        } else if (activeSessionType === 'SOS') {
+          isSharing = true;
+          statusStr = 'SOS';
+        } else {
+          isSharing = false;
+          statusStr = "Not Sharing";
+        }
+      } else if (userPrivacySetting === 'SCHEDULED') {
+        if (scheduledPrivacyExpiryTime && Date.now() < scheduledPrivacyExpiryTime) {
+          isSharing = true;
+          statusStr = 'Sharing';
+        } else {
+          isSharing = false;
+          statusStr = "Not Sharing";
+        }
+      } else {
+        isSharing = false;
+        statusStr = "Not Sharing";
+      }
+
+      const locationRecord = {
+        userId: uid,
+        displayName: auth.displayName || auth.email,
+        isSharing: isSharing,
+        status: statusStr,
+        privacySetting: userPrivacySetting,
+        latitude: isSharing ? currentLat : null,
+        longitude: isSharing ? currentLng : null,
+        accuracy: isSharing ? currentAccuracy : null,
+        speed: isSharing ? currentSpeedKmh : null,
+        lastUpdatedAt: Date.now(),
+        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+        activeSafeWalk: (isSharing && activeSessionType === 'SAFEWALK') ? {
+          destinationName: destinationName,
+          eta: document.getElementById('swEtaRemaining') ? document.getElementById('swEtaRemaining').innerText : '1 นาที',
+          distanceRemaining: document.getElementById('swDistRemaining') ? document.getElementById('swDistRemaining').innerText : '0.0 กม.',
+          routeStatus: currentRouteDeviationStatus
+        } : null
+      };
+
+      caremeDb.ref(`userLocations/${uid}`).set(locationRecord);
+
+      // Also update member record in active group
+      if (activeGroupId) {
+        caremeDb.ref(`groupMembers/${activeGroupId}/${uid}/locationSharing`).set(userPrivacySetting);
+      }
+    }
+
+    function updateUserLocationPrivacy(setting) {
+      userPrivacySetting = setting;
+      if (setting === 'SCHEDULED') {
+        scheduledPrivacyExpiryTime = Date.now() + (2 * 60 * 60 * 1000); // 2 hours
+      } else {
+        scheduledPrivacyExpiryTime = null;
+      }
+
+      const badge = document.getElementById('currentPrivacyStatusBadge');
+      if (badge) {
+        badge.innerText = setting === 'ALWAYS' ? 'Always Share (ตลอดเวลา)' 
+          : (setting === 'SAFEWALK_ONLY' ? 'Only During SafeWalk (เฉพาะ SafeWalk)'
+          : (setting === 'SCHEDULED' ? 'Scheduled (กำหนดเวลา 2 ชม.)' : 'Stop Sharing (หยุดแชร์)'));
+      }
+
+      logEvent('PRIVACY_SETTING_CHANGED', { setting: setting });
+      syncUserLocationToFirebase();
+      alert("✅ อัปเดตการตั้งค่าความเป็นส่วนตัวเรียบร้อยแล้ว");
+    }
+
+    function initGroupLiveMap() {
+      if (!groupLiveMapInstance) {
+        groupLiveMapInstance = L.map('groupLiveMap').setView([currentLat, currentLng], 15);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19, attribution: '&copy; Esri'
+        }).addTo(groupLiveMapInstance);
+
+        const myIcon = L.divIcon({
+          html: `<div class="bg-teal-600 border-2 border-white rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-lg text-white font-bold">👤</div>`,
+          className: 'custom-my-group-icon',
+          iconSize: [32, 32]
+        });
+        userMarkerGroupMap = L.marker([currentLat, currentLng], { icon: myIcon }).addTo(groupLiveMapInstance).bindPopup("<b>ตำแหน่งของคุณ</b>");
+      } else {
+        groupLiveMapInstance.invalidateSize();
+      }
+    }
+
+    function updateGroupLiveMap(members) {
+      if (!groupLiveMapInstance) return;
+
+      const auth = getCaremeAuth();
+      const currentUid = auth ? auth.id : '';
+
+      Object.keys(members).forEach(uid => {
+        if (uid === currentUid) return; // My own marker handled separately
+
+        caremeDb.ref(`userLocations/${uid}`).on('value', (snap) => {
+          const loc = snap.val();
+          if (loc && loc.isSharing && loc.latitude && loc.longitude) {
+            let markerIconHtml = '🟢';
+            if (loc.status === 'SOS') markerIconHtml = '🚨';
+            else if (loc.status === 'SafeWalk') markerIconHtml = '🚶';
+
+            if (groupLiveMapMarkers[uid]) {
+              groupLiveMapMarkers[uid].setLatLng([loc.latitude, loc.longitude]);
+              groupLiveMapMarkers[uid].setPopupContent(`<b>${loc.displayName}</b><br>สถานะ: ${loc.status}<br>อัปเดต: ${loc.time}`);
+            } else {
+              const memIcon = L.divIcon({
+                html: `<div class="bg-white border-2 border-teal-600 rounded-full w-8 h-8 flex items-center justify-center text-xs shadow-lg font-bold">${markerIconHtml}</div>`,
+                className: 'custom-mem-icon',
+                iconSize: [32, 32]
+              });
+              const m = L.marker([loc.latitude, loc.longitude], { icon: memIcon }).addTo(groupLiveMapInstance);
+              m.bindPopup(`<b>${loc.displayName}</b><br>สถานะ: ${loc.status}<br>อัปเดต: ${loc.time}`);
+              groupLiveMapMarkers[uid] = m;
+            }
+          } else {
+            // Member not sharing or stopped sharing
+            if (groupLiveMapMarkers[uid]) {
+              groupLiveMapInstance.removeLayer(groupLiveMapMarkers[uid]);
+              delete groupLiveMapMarkers[uid];
+            }
+          }
+        });
+      });
+    }
+
+    function sendGroupAlert(type, message) {
+      if (!activeGroupId) return;
+      const alertId = 'alert_' + Date.now();
+      const auth = getCaremeAuth();
+      const alertData = {
+        alertId: alertId,
+        groupId: activeGroupId,
+        userId: auth ? auth.id : 'user',
+        userName: auth ? (auth.displayName || auth.email) : 'นักศึกษา มข.',
+        type: type,
+        message: message,
+        latitude: currentLat,
+        longitude: currentLng,
+        timestamp: Date.now(),
         time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
       };
 
-      saveToLocal('careme_report_data', payload);
-      dispatchEvent('SUBMIT_REPORT', payload);
-      logEvent('SUBMIT_REPORT', payload);
-      createNotification({
-        category: "Report",
-        type: "SUBMIT_REPORT",
-        message: `มีรายงานใหม่: ${cat} ที่ ${loc}`,
-        priority: "NORMAL",
-        relatedId: payload.id
-      });
-      alert("✅ ส่งรายงานการแจ้งเหตุไปยังศูนย์ รปภ. เรียบร้อยแล้ว!");
-      
-      document.getElementById('reportLocation').value = '';
-      document.getElementById('reportDetail').value = '';
-      document.getElementById('reportImageInput').value = '';
-      selectedImageData = null;
-      document.getElementById('imagePreviewContainer').classList.add('hidden');
-      document.getElementById('imagePlaceholder').classList.remove('hidden');
-      
-      switchTab('home');
+      caremeDb.ref(`groupAlerts/${alertId}`).set(alertData);
+      caremeDb.ref(`groups/${activeGroupId}/lastAlert`).set(alertData);
     }
 
-    function startSafeWalk() {
-      if (destinationLat === null || destinationLng === null) {
-        alert("กรุณาเลือกจุดหมายปลายทางบนแผนที่ก่อนเริ่ม Safe Walk");
-        return;
+    function handleQuickCheckIn(placeText) {
+      const auth = getCaremeAuth();
+      const userName = auth ? (auth.displayName || auth.email) : 'นักศึกษา มข.';
+      const checkInMsg = `${userName} เช็คอิน: ${placeText}`;
+
+      const checkInId = 'chk_' + Date.now();
+      const payload = {
+        id: checkInId,
+        type: 'CHECK_IN',
+        category: 'Group / Family',
+        userId: auth ? auth.id : 'user',
+        locationName: placeText,
+        latitude: currentLat,
+        longitude: currentLng,
+        timestamp: Date.now(),
+        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+      };
+
+      caremeDb.ref(`eventLogs/${checkInId}`).set(payload);
+      logEvent('CHECK_IN', payload);
+
+      if (activeGroupId) {
+        sendGroupAlert('CHECK_IN', checkInMsg);
       }
-      isCurrentlyDeviated = false;
-      document.getElementById('safeWalkControls').classList.add('hidden');
-      document.getElementById('activeSafeWalkBox').classList.remove('hidden');
-      document.getElementById('activeDestText').innerText = "ปลายทาง: " + destinationName;
 
-      startContinuousGPSTracking("กำลังเดินทางไป: " + destinationName, 'SAFEWALK');
-      createNotification({
-        category: "SafeWalk",
-        type: "START_SAFEWALK",
-        message: `เริ่ม SafeWalk ไปยัง ${destinationName}`,
-        priority: "HIGH",
-        relatedId: activeSessionId
-      });
-    }
-
-    function endSafeWalk() {
-      if (gpsInterval) clearInterval(gpsInterval);
-      if (checkpointInterval) clearInterval(checkpointInterval);
-      gpsInterval = null;
-      checkpointInterval = null;
-
-      dispatchEvent('END_SAFEWALK', { id: activeSessionId });
-      logEvent('SAFEWALK_COMPLETED', { id: activeSessionId });
-
-      createNotification({
-        category: "SafeWalk",
-        type: "END_SAFEWALK",
-        message: `เดินทางถึงปลายทาง ${destinationName} ปลอดภัยแล้ว`,
-        priority: "NORMAL",
-        relatedId: activeSessionId
-      });
-
-      document.getElementById('trackingStatusBanner').classList.add('hidden');
-      document.getElementById('activeSafeWalkBox').classList.add('hidden');
-      document.getElementById('safeWalkControls').classList.remove('hidden');
-
-      alert("🎉 คุณเดินทางถึงที่หมายปลอดภัยเรียบร้อยแล้ว!");
-    }
-
-    function toggleNearbySharing(checkbox) {
-      isNearbySharingEnabled = checkbox.checked;
-      logEvent('TOGGLE_NEARBY_SHARING', { enabled: isNearbySharingEnabled });
       createNotification({
         category: "Group / Family",
-        type: "NEARBY_SHARING",
-        message: isNearbySharingEnabled ? "สมาชิกเปิดใช้งานการแชร์ตำแหน่ง Safe Walk ในรัศมีใกล้เคียง" : "สมาชิกปิดการแชร์ตำแหน่งใกล้เคียง",
-        priority: "NORMAL"
+        type: "CHECK_IN",
+        message: checkInMsg,
+        priority: "NORMAL",
+        relatedId: checkInId,
+        force: true
       });
+
+      alert(`✅ เช็คอินสำเร็จ: "${placeText}"`);
+      closeGroupModal();
+    }
+
+    function handleCustomCheckIn() {
+      const text = document.getElementById('customCheckInInput').value.trim();
+      if (!text) {
+        alert("กรุณากรอกสถานที่เช็คอิน");
+        return;
+      }
+      handleQuickCheckIn(text);
+      document.getElementById('customCheckInInput').value = '';
+    }
+
+    function openGroupModal(tab = 'groups') {
+      document.getElementById('groupManagerModal').classList.remove('hidden');
+      switchGroupTab(tab);
+      renderGroupsListUI();
+      if (activeGroupId) loadActiveGroupDetails(activeGroupId);
+    }
+
+    function closeGroupModal() {
+      document.getElementById('groupManagerModal').classList.add('hidden');
+    }
+
+    function switchGroupTab(tab) {
+      const sections = ['grpSectionGroups', 'grpSectionMap', 'grpSectionPrivacy', 'grpSectionCheckin'];
+      sections.forEach(s => document.getElementById(s).classList.add('hidden'));
+
+      const tabs = ['grpTabGroups', 'grpTabMap', 'grpTabPrivacy', 'grpTabCheckin'];
+      tabs.forEach(t => {
+        document.getElementById(t).className = "px-3 py-1 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:border-teal-600 whitespace-nowrap";
+      });
+
+      if (tab === 'groups') {
+        document.getElementById('grpSectionGroups').classList.remove('hidden');
+        document.getElementById('grpTabGroups').className = "px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap";
+      } else if (tab === 'map') {
+        document.getElementById('grpSectionMap').classList.remove('hidden');
+        document.getElementById('grpTabMap').className = "px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap";
+        setTimeout(() => { initGroupLiveMap(); groupLiveMapInstance.invalidateSize(); }, 150);
+      } else if (tab === 'privacy') {
+        document.getElementById('grpSectionPrivacy').classList.remove('hidden');
+        document.getElementById('grpTabPrivacy').className = "px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap";
+      } else if (tab === 'checkin') {
+        document.getElementById('grpSectionCheckin').classList.remove('hidden');
+        document.getElementById('grpTabCheckin').className = "px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap";
+      }
+    }
+
+    function openCreateGroupModal() {
+      document.getElementById('modalCreateGroup').classList.remove('hidden');
+    }
+
+    function openJoinGroupModal() {
+      document.getElementById('modalJoinGroup').classList.remove('hidden');
+    }
+
+    function showGroupInviteModal() {
+      if (!activeGroupId) return;
+      caremeDb.ref(`groups/${activeGroupId}`).once('value', (snap) => {
+        const g = snap.val();
+        if (!g) return;
+        document.getElementById('inviteCodeDisplay').innerText = g.inviteCode;
+        // Generate QR Code via clean QR server API
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('CAREME_JOIN:' + g.inviteCode)}`;
+        document.getElementById('inviteQrCodeImg').src = qrUrl;
+        document.getElementById('modalInviteGroup').classList.remove('hidden');
+      });
+    }
+
+    function copyInviteCode() {
+      const code = document.getElementById('inviteCodeDisplay').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert(`📋 คัดลอกรหัสเชิญ ${code} แล้ว!`);
+      });
+    }
+
+    function submitCreateGroup() {
+      const name = document.getElementById('newGroupNameInput').value.trim();
+      const type = document.getElementById('newGroupTypeSelect').value;
+      if (!name) {
+        alert("กรุณากรอกชื่อกลุ่ม");
+        return;
+      }
+
+      const auth = getCaremeAuth();
+      if (!auth) return;
+      const uid = auth.id;
+      const groupId = 'grp_' + Date.now();
+      const inviteCode = 'CK-' + Math.floor(100000 + Math.random() * 900000);
+      const timeStr = new Date().toLocaleDateString('th-TH');
+
+      const groupData = {
+        groupId: groupId,
+        name: name,
+        type: type,
+        ownerId: uid,
+        ownerName: auth.displayName || auth.email,
+        inviteCode: inviteCode,
+        createdAt: Date.now(),
+        createdAtStr: timeStr
+      };
+
+      const memberData = {
+        userId: uid,
+        displayName: auth.displayName || auth.email,
+        role: 'OWNER',
+        joinedAt: Date.now(),
+        locationSharing: userPrivacySetting
+      };
+
+      caremeDb.ref(`groups/${groupId}`).set(groupData);
+      caremeDb.ref(`groupMembers/${groupId}/${uid}`).set(memberData);
+      caremeDb.ref(`userGroups/${uid}/${groupId}`).set(true);
+
+      logEvent('GROUP_CREATED', { groupId: groupId, name: name });
+      createNotification({
+        category: "Group / Family",
+        type: "GROUP_CREATED",
+        message: `สร้างกลุ่มใหม่ "${name}" สำเร็จ (รหัสเชิญ: ${inviteCode})`,
+        priority: "NORMAL",
+        relatedId: groupId,
+        force: true
+      });
+
+      document.getElementById('modalCreateGroup').classList.add('hidden');
+      document.getElementById('newGroupNameInput').value = '';
+      activeGroupId = groupId;
+      loadActiveGroupDetails(groupId);
+      alert(`🎉 สร้างกลุ่ม "${name}" เรียบร้อยแล้ว! รหัสเชิญของคุณคือ ${inviteCode}`);
+    }
+
+    function submitJoinGroup() {
+      const code = document.getElementById('joinInviteCodeInput').value.trim().toUpperCase();
+      if (!code) {
+        alert("กรุณากรอกรหัสเชิญกลุ่ม");
+        return;
+      }
+
+      const auth = getCaremeAuth();
+      if (!auth) return;
+      const uid = auth.id;
+
+      caremeDb.ref('groups').once('value', (snapshot) => {
+        const groups = snapshot.val() || {};
+        let targetGroup = null;
+
+        Object.values(groups).forEach(g => {
+          if (g.inviteCode === code) targetGroup = g;
+        });
+
+        if (!targetGroup) {
+          alert("ไม่พบกลุ่มที่ตรงกับรหัสเชิญดังกล่าว กรุณาตรวจสอบรหัสอีกครั้ง");
+          return;
+        }
+
+        const memberData = {
+          userId: uid,
+          displayName: auth.displayName || auth.email,
+          role: 'MEMBER',
+          joinedAt: Date.now(),
+          locationSharing: userPrivacySetting
+        };
+
+        caremeDb.ref(`groupMembers/${targetGroup.groupId}/${uid}`).set(memberData);
+        caremeDb.ref(`userGroups/${uid}/${targetGroup.groupId}`).set(true);
+
+        logEvent('GROUP_JOINED', { groupId: targetGroup.groupId, name: targetGroup.name });
+        createNotification({
+          category: "Group / Family",
+          type: "GROUP_JOINED",
+          message: `คุณได้เข้าร่วมกลุ่ม "${targetGroup.name}" เรียบร้อยแล้ว`,
+          priority: "NORMAL",
+          relatedId: targetGroup.groupId,
+          force: true
+        });
+
+        document.getElementById('modalJoinGroup').classList.add('hidden');
+        document.getElementById('joinInviteCodeInput').value = '';
+        activeGroupId = targetGroup.groupId;
+        loadActiveGroupDetails(targetGroup.groupId);
+        alert(`🎉 คุณเข้าร่วมกลุ่ม "${targetGroup.name}" สำเร็จแล้ว!`);
+      });
+    }
+
+    function leaveActiveGroup() {
+      if (!activeGroupId) return;
+      if (!confirm("คุณต้องการออกจากกลุ่มนี้ใช่หรือไม่?")) return;
+
+      const auth = getCaremeAuth();
+      if (!auth) return;
+      const uid = auth.id;
+
+      caremeDb.ref(`groupMembers/${activeGroupId}/${uid}`).remove();
+      caremeDb.ref(`userGroups/${uid}/${activeGroupId}`).remove();
+      logEvent('GROUP_LEAVE', { groupId: activeGroupId });
+
+      activeGroupId = null;
+      document.getElementById('activeGroupDetailBox').classList.add('hidden');
+      alert("ออกจากกลุ่มเรียบร้อยแล้ว");
+    }
+
+    function removeGroupMember(memberId) {
+      if (!activeGroupId) return;
+      if (!confirm("คุณต้องการลบสมาชิกรายนี้ออกจากกลุ่มใช่หรือไม่?")) return;
+
+      caremeDb.ref(`groupMembers/${activeGroupId}/${memberId}`).remove();
+      caremeDb.ref(`userGroups/${memberId}/${activeGroupId}`).remove();
+      logEvent('GROUP_MEMBER_REMOVED', { groupId: activeGroupId, targetUser: memberId });
+      alert("ลบสมาชิกออกจากกลุ่มเรียบร้อยแล้ว");
+    }
+
+    // ==========================================
+    // 17. EVENT LOGGING TO FIREBASE (SCHEMA 24)
+    // ==========================================
+    function logEvent(eventType, metadata = {}) {
+      const auth = getCaremeAuth();
+      const eventId = 'ev_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      const eventRecord = {
+        eventId: eventId,
+        id: eventId,
+        eventType: eventType,
+        userId: auth ? (auth.id || auth.email) : 'student_user',
+        relatedId: metadata.sessionId || metadata.id || null,
+        timestamp: Date.now(),
+        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' น.',
+        latitude: currentLat,
+        longitude: currentLng,
+        metadata: metadata
+      };
+      caremeDb.ref('eventLogs/' + eventId).set(eventRecord);
+    }
+
+    // ==========================================
+    // 18. MAPS & NAVIGATION TABS
+    // ==========================================
+    function initMiniMap() {
+      if (!miniMapInstance) {
+        miniMapInstance = L.map('miniMap', { zoomControl: false }).setView([currentLat, currentLng], 15);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19, attribution: '&copy; Esri'
+        }).addTo(miniMapInstance);
+        userMarkerMini = L.marker([currentLat, currentLng]).addTo(miniMapInstance).bindPopup("ตำแหน่งของคุณ").openPopup();
+      }
+    }
+
+    function initFullMap() {
+      if (!fullMapInstance) {
+        fullMapInstance = L.map('fullMap').setView([currentLat, currentLng], 15);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19, attribution: '&copy; Esri'
+        }).addTo(fullMapInstance);
+        userMarkerFull = L.marker([currentLat, currentLng]).addTo(fullMapInstance).bindPopup("<b>คุณอยู่ที่นี่</b>").openPopup();
+        renderSafetyPoints('ALL');
+      }
+    }
+
+    function renderSafetyPoints(typeFilter) {
+      if (!fullMapInstance) return;
+      safePointMarkers.forEach(m => fullMapInstance.removeLayer(m));
+      safePointMarkers = [];
+
+      safetyLocations.forEach(loc => {
+        if (typeFilter === 'ALL' || loc.type === typeFilter) {
+          let iconHtml = '🚨';
+          if (loc.type === 'CCTV') iconHtml = '🎥';
+          if (loc.type === 'GUARD') iconHtml = '👮';
+          if (loc.type === 'PLACE') iconHtml = '🏛️';
+
+          const customIcon = L.divIcon({
+            html: `<div class="bg-white border-2 border-slate-700 rounded-full w-7 h-7 flex items-center justify-center text-xs shadow-md">${iconHtml}</div>`,
+            className: 'custom-safe-icon',
+            iconSize: [28, 28]
+          });
+
+          const m = L.marker([loc.lat, loc.lng], { icon: customIcon }).addTo(fullMapInstance);
+          m.bindPopup(`<b>${loc.name}</b>`);
+          safePointMarkers.push(m);
+        }
+      });
+    }
+
+    function filterMapPoints(filter) {
+      document.getElementById('btnMapAll').className = filter==='ALL' ? 'bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold whitespace-nowrap shadow-sm':'bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap';
+      document.getElementById('btnMapBox').className = filter==='BOX' ? 'bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold whitespace-nowrap shadow-sm':'bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap';
+      document.getElementById('btnMapCCTV').className = filter==='CCTV' ? 'bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold whitespace-nowrap shadow-sm':'bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap';
+      document.getElementById('btnMapGuard').className = filter==='GUARD' ? 'bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold whitespace-nowrap shadow-sm':'bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap';
+      renderSafetyPoints(filter);
     }
 
     function switchTab(tab) {
@@ -1941,7 +3197,7 @@
       const navIds = ['navHome', 'navReport', 'navMap', 'navSafewalk', 'navSecurity'];
       navIds.forEach(id => {
         const el = document.getElementById(id);
-        if(el) el.className = "flex flex-col items-center text-slate-400 hover:text-kkuBlue";
+        if (el) el.className = "flex flex-col items-center text-slate-400 hover:text-kkuBlue";
       });
 
       if (tab === 'home') {
@@ -1973,6 +3229,20 @@
         document.getElementById('headerSubTitle').innerText = "สายด่วนและศูนย์บริการความปลอดภัย";
       }
     }
+
+    // BroadcastChannel sync
+    channel.onmessage = (event) => {
+      const { type, payload } = event.data || {};
+      if (type === 'NEW_NOTIFICATION' && payload) {
+        userNotifications.unshift(payload);
+        persistNotifications();
+        updateNotificationUI();
+      }
+    };
+
+    window.onload = () => {
+      checkAuthSession();
+    };
   </script>
 </body>
 </html>

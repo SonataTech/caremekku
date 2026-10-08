@@ -1,4 +1,4 @@
-const CACHE_NAME = 'caremekku-v1';
+const CACHE_NAME = 'caremekku-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
