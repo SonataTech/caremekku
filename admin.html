@@ -222,20 +222,25 @@
         <i class="fa-solid fa-broom"></i>
       </div>
       <div class="text-center space-y-1">
-        <h3 class="font-bold text-base text-white">ล้างการแสดงผลที่เสร็จสิ้นแล้ว</h3>
+        <h3 class="font-bold text-base text-white">ล้างรายการและการแสดงผล</h3>
         <p class="text-xs text-slate-300 leading-relaxed">
-          ต้องการนำ SafeWalk และเหตุการณ์ที่เสร็จสิ้นแล้วออกจากหน้าจอ Command Center ใช่หรือไม่?
+          เลือกระดับการล้างข้อมูลหน้าจอ Command Center:
         </p>
         <p class="text-[11px] text-emerald-400 font-medium pt-1">
-          ✓ ข้อมูลประวัติ (History), Event Logs และ SOS Archives ทั้งหมดจะยังคงถูกบันทึกไว้อย่างปลอดภัยใน Firebase
+          ✓ ประวัติทั้งหมดใน Firebase (History, Reports, SOS, Event Logs) จะยังคงถูกบันทึกไว้อย่างสมบูรณ์
         </p>
       </div>
-      <div class="grid grid-cols-2 gap-2 pt-2">
-        <button onclick="closeClearActiveModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold text-xs py-2.5 rounded-xl transition">
-          ยกเลิก
+      <div class="space-y-2 pt-2">
+        <button onclick="confirmClearActiveSessions('RESOLVED_ONLY')" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs py-2.5 rounded-xl transition shadow flex items-center justify-center space-x-1.5">
+          <i class="fa-solid fa-check"></i>
+          <span>ล้างเฉพาะรายการที่ปิดงานแล้ว (SafeWalk & รายงาน)</span>
         </button>
-        <button onclick="confirmClearActiveSessions()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs py-2.5 rounded-xl transition">
-          ยืนยันการล้างหน้าจอ
+        <button onclick="confirmClearActiveSessions('RESOLVE_ALL')" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 rounded-xl transition shadow flex items-center justify-center space-x-1.5">
+          <i class="fa-solid fa-check-double"></i>
+          <span>แมนนวลปิดงานทั้งหมดและล้างหน้าจอ</span>
+        </button>
+        <button onclick="closeClearActiveModal()" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold text-xs py-2 rounded-xl transition">
+          ยกเลิก
         </button>
       </div>
     </div>
@@ -586,9 +591,18 @@
           activeSessionsCache[data.id] = data;
           const cat = getEventCategory(data, 'Report');
           addAlertCard(data, cat);
-          if (data.lat && data.lng) {
+          if (data.lat && data.lng && data.status !== 'RESOLVED') {
             addMapMarker(data.id, data.lat, data.lng, data.title || 'รายงานเหตุ', cat);
           }
+          updateSummaryDashboardStats();
+        }
+      });
+
+      caremeDb.ref('reports').on('child_changed', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          activeSessionsCache[data.id] = data;
+          updateReportCard(data);
           updateSummaryDashboardStats();
         }
       });
@@ -765,14 +779,18 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 pt-1">
-            <button onclick="focusSafeWalkOnMap('${id}', ${userLat || 16.4746}, ${userLng || 102.8234}, ${destLat || 'null'}, ${destLng || 'null'}, '${destName}')" class="w-full bg-slate-800 hover:bg-slate-900 border border-indigo-500/40 text-indigo-200 text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow-sm">
+          <div class="grid grid-cols-3 gap-1.5 pt-1">
+            <button onclick="focusSafeWalkOnMap('${id}', ${userLat || 16.4746}, ${userLng || 102.8234}, ${destLat || 'null'}, ${destLng || 'null'}, '${destName}')" class="bg-slate-800 hover:bg-slate-900 border border-indigo-500/40 text-indigo-200 text-[10px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow-sm">
               <i class="fa-solid fa-map-location-dot text-indigo-400"></i>
-              <span>ดูเส้นทาง & หมุด</span>
+              <span>ดูเส้นทาง</span>
             </button>
-            <a href="tel:043202191" onclick="logAdminCallback('${userDisplay}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
-              <i class="fa-solid fa-phone-volume"></i>
-              <span>โทรกลับ User</span>
+            <button onclick="adminManualCompleteSafeWalk('${id}')" id="btn-complete-sw-${id}" class="${isCompleted ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} text-[10px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
+              <i class="fa-solid fa-flag-checkered"></i>
+              <span>${isCompleted ? 'จบงานแล้ว' : 'แมนนวลจบงาน'}</span>
+            </button>
+            <a href="tel:043202191" onclick="logAdminCallback('${userDisplay}')" class="bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow text-center">
+              <i class="fa-solid fa-phone"></i>
+              <span>โทรกลับ</span>
             </a>
           </div>
         `;
@@ -792,18 +810,37 @@
               </span>
               ${isSOS ? '<span class="bg-red-500/20 text-red-300 border border-red-500/40 text-[9px] font-bold px-1.5 py-0.5 rounded">CRITICAL</span>' : ''}
             </div>
-            <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${data.time || 'เมื่อครู่'}</span>
+            <div class="flex items-center space-x-1.5">
+    <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${data.time || 'เมื่อครู่'}</span>
+    <button onclick="adminDismissCard('${id}', '${finalCategory}')" class="text-slate-400 hover:text-red-400 p-0.5 text-xs transition" title="ลบ/ปิดรายการนี้"><i class="fa-solid fa-xmark"></i></button>
+  </div>
           </div>
           <p class="text-xs ${isSOS ? 'text-white font-bold' : 'text-slate-200 font-medium'} leading-snug">${eventMessage}</p>
           <p class="text-[11px] text-slate-400"><i class="fa-solid fa-user text-slate-500 mr-1"></i> ${data.user || 'นักศึกษา มข.'}</p>
           ${data.location ? `<p class="text-[11px] text-slate-400"><i class="fa-solid fa-location-dot text-slate-500 mr-1"></i> ${data.location}</p>` : ''}
           ${imgHtml}
-          <div class="grid grid-cols-2 gap-2 pt-2">
-            <button onclick="focusMap(${data.lat || 16.4746}, ${data.lng || 102.8234}, '${finalCategory}')" class="w-full bg-slate-800 hover:bg-slate-900 border border-slate-600 text-slate-200 text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1">
+          <div class="grid grid-cols-3 gap-1.5 pt-2">
+            <button onclick="focusMap(${data.lat || 16.4746}, ${data.lng || 102.8234}, '${finalCategory}')" class="bg-slate-800 hover:bg-slate-900 border border-slate-600 text-slate-200 text-[10px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1">
               <i class="fa-solid fa-crosshairs text-sky-400"></i>
               <span>ปักหมุด</span>
             </button>
-            <a href="tel:043202191" onclick="logAdminCallback('${data.user || 'ผู้แจ้งเหตุ'}')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
+            ${isSOS ? `
+              <button onclick="adminManualResolveSOS('${id}')" id="btn-resolve-${id}" class="${data.status === 'RESOLVED' ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'} text-[10px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
+                <i class="fa-solid fa-check"></i>
+                <span>${data.status === 'RESOLVED' ? 'ปิดเคสแล้ว' : 'แมนนวลปิดเคส'}</span>
+              </button>
+            ` : (finalCategory === 'Report' ? `
+              <button onclick="adminManualResolveReport('${id}')" id="btn-resolve-${id}" class="${data.status === 'RESOLVED' ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'} text-[10px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
+                <i class="fa-solid fa-check-double"></i>
+                <span>${data.status === 'RESOLVED' ? 'ปิดงานแล้ว' : 'แมนนวลปิดงาน'}</span>
+              </button>
+            ` : `
+              <button onclick="adminDismissCard('${id}', '${finalCategory}')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-[10px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow">
+                <i class="fa-solid fa-check"></i>
+                <span>ปิดการแจ้งเตือน</span>
+              </button>
+            `)}
+            <a href="tel:043202191" onclick="logAdminCallback('${data.user || 'ผู้แจ้งเหตุ'}')" class="bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow text-center">
               <i class="fa-solid fa-phone"></i>
               <span>โทรกลับ</span>
             </a>
@@ -1006,50 +1043,293 @@
       document.getElementById('modalClearActive').classList.add('hidden');
     }
 
-    // RULE 22: Clear UI != Delete History!
-    // Safely removes completed/ended sessions from the active display and map, preserving all database history.
-    function confirmClearActiveSessions() {
+
+    // ==========================================
+    // MANUAL JOB COMPLETION & RESOLUTION
+    // ==========================================
+    function updateReportCard(data) {
+      const id = data.id || data.reportId;
+      const card = document.getElementById('alert-' + id);
+      if (!card) return;
+
+      const isResolved = data.status === 'RESOLVED';
+      const btn = document.getElementById('btn-resolve-' + id);
+      if (btn) {
+        if (isResolved) {
+          btn.className = "bg-slate-700 text-slate-400 cursor-not-allowed text-[10px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow";
+          btn.innerHTML = '<i class="fa-solid fa-check-double"></i><span>ปิดงานแล้ว</span>';
+        }
+      }
+    }
+
+    function adminManualResolveReport(reportId) {
+      if (!verifyAdminAccess()) return;
       const auth = getCaremeAuth();
+      const adminName = auth ? (auth.username || 'admin') : 'admin';
+      const timeNow = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+
+      caremeDb.ref('reports/' + reportId).update({
+        status: 'RESOLVED',
+        resolvedAt: timeNow,
+        resolvedBy: adminName
+      });
+
       const eventId = 'ev_' + Date.now();
-      
-      // Log clear event
       caremeDb.ref('eventLogs/' + eventId).set({
         eventId: eventId,
         id: eventId,
-        eventType: 'CLEAR_ACTIVE_SESSION',
-        userId: auth ? auth.username : 'admin',
+        eventType: 'ADMIN_RESOLVE_REPORT',
+        userId: adminName,
+        relatedId: reportId,
         timestamp: Date.now(),
-        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' น.',
-        metadata: { clearedBy: auth ? auth.username : 'admin' }
+        time: timeNow,
+        metadata: { reportId: reportId, status: 'RESOLVED' }
       });
 
-      // Clear completed/ended cards from UI
-      const cards = document.querySelectorAll('#alertsContainer > [id^="alert-"]');
-      cards.forEach(card => {
-        const text = card.innerText || '';
-        if (text.includes('ถึงปลายทางแล้ว') || text.includes('COMPLETED') || text.includes('เสร็จสิ้น') || text.includes('ยกเลิก')) {
-          card.remove();
+      if (adminMap && markers[reportId]) {
+        adminMap.removeLayer(markers[reportId]);
+        delete markers[reportId];
+      }
+
+      if (activeSessionsCache[reportId]) {
+        activeSessionsCache[reportId].status = 'RESOLVED';
+      }
+
+      const card = document.getElementById('alert-' + reportId);
+      if (card) {
+        card.setAttribute('data-status', 'RESOLVED');
+        card.classList.add('border-emerald-500/50', 'bg-emerald-950/20');
+        const btn = document.getElementById('btn-resolve-' + reportId);
+        if (btn) {
+          btn.className = "bg-slate-700 text-slate-400 cursor-not-allowed text-[10px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow";
+          btn.innerHTML = '<i class="fa-solid fa-check-double"></i><span>ปิดงานแล้ว</span>';
         }
+      }
+
+      updateSummaryDashboardStats();
+      alert("✅ แมนนวลปิดงานรายงานเหตุเรียบร้อยแล้ว (สถานะเปลี่ยนเป็น RESOLVED)");
+    }
+
+    function adminManualCompleteSafeWalk(sessionId) {
+      if (!verifyAdminAccess()) return;
+      const auth = getCaremeAuth();
+      const adminName = auth ? (auth.username || 'admin') : 'admin';
+      const timeNow = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+
+      const completedData = {
+        status: 'COMPLETED',
+        routeStatus: 'แอดมินปิดจบงานแล้ว',
+        completedAt: timeNow,
+        resolvedBy: adminName,
+        lastUpdatedAt: timeNow
+      };
+
+      caremeDb.ref('safeWalkSessions/' + sessionId).update(completedData);
+      caremeDb.ref('sos/' + sessionId).update(completedData);
+
+      const eventId = 'ev_' + Date.now();
+      caremeDb.ref('eventLogs/' + eventId).set({
+        eventId: eventId,
+        id: eventId,
+        eventType: 'ADMIN_COMPLETE_SAFEWALK',
+        userId: adminName,
+        relatedId: sessionId,
+        timestamp: Date.now(),
+        time: timeNow,
+        metadata: { sessionId: sessionId, action: 'ADMIN_MANUAL_COMPLETE' }
       });
 
-      // Clear completed markers and polylines from the map
-      Object.keys(safewalkRoutes).forEach(id => {
-        const session = activeSessionsCache[id];
-        if (session && (session.status === 'completed' || session.status === 'COMPLETED' || session.status === 'ended' || session.routeStatus === 'ถึงปลายทางแล้ว')) {
-          if (adminMap && safewalkRoutes[id]) adminMap.removeLayer(safewalkRoutes[id]);
-          if (adminMap && markers[id]) adminMap.removeLayer(markers[id]);
-          if (adminMap && destMarkers[id]) adminMap.removeLayer(destMarkers[id]);
-          delete safewalkRoutes[id];
-          delete markers[id];
-          delete destMarkers[id];
-          delete activeSessionsCache[id];
+      // Broadcast to user app
+      channel.postMessage({ type: 'END_SAFEWALK', payload: { id: sessionId, ...completedData } });
+
+      if (adminMap) {
+        if (safewalkRoutes[sessionId]) {
+          adminMap.removeLayer(safewalkRoutes[sessionId]);
+          delete safewalkRoutes[sessionId];
         }
+        if (markers[sessionId]) {
+          adminMap.removeLayer(markers[sessionId]);
+          delete markers[sessionId];
+        }
+        if (destMarkers[sessionId]) {
+          adminMap.removeLayer(destMarkers[sessionId]);
+          delete destMarkers[sessionId];
+        }
+      }
+
+      if (activeSessionsCache[sessionId]) {
+        activeSessionsCache[sessionId].status = 'COMPLETED';
+        activeSessionsCache[sessionId].routeStatus = 'แอดมินปิดจบงานแล้ว';
+      }
+
+      updateSafeWalkCard({ id: sessionId, ...completedData });
+      updateSummaryDashboardStats();
+      alert("🏁 แมนนวลจบงาน SafeWalk เรียบร้อยแล้ว");
+    }
+
+    function adminManualResolveSOS(sosId) {
+      if (!verifyAdminAccess()) return;
+      const auth = getCaremeAuth();
+      const adminName = auth ? (auth.username || 'admin') : 'admin';
+      const timeNow = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+
+      caremeDb.ref('sos/' + sosId).update({
+        status: 'RESOLVED',
+        resolvedAt: timeNow,
+        resolvedBy: adminName
       });
+
+      const eventId = 'ev_' + Date.now();
+      caremeDb.ref('eventLogs/' + eventId).set({
+        eventId: eventId,
+        id: eventId,
+        eventType: 'ADMIN_RESOLVE_SOS',
+        userId: adminName,
+        relatedId: sosId,
+        timestamp: Date.now(),
+        time: timeNow
+      });
+
+      if (adminMap && markers[sosId]) {
+        adminMap.removeLayer(markers[sosId]);
+        delete markers[sosId];
+      }
+
+      if (activeSessionsCache[sosId]) {
+        activeSessionsCache[sosId].status = 'RESOLVED';
+      }
+
+      const card = document.getElementById('alert-' + sosId);
+      if (card) {
+        card.setAttribute('data-status', 'RESOLVED');
+        const btn = document.getElementById('btn-resolve-' + sosId);
+        if (btn) {
+          btn.className = "bg-slate-700 text-slate-400 cursor-not-allowed text-[10px] py-1.5 rounded-xl font-bold transition flex items-center justify-center space-x-1 shadow";
+          btn.innerHTML = '<i class="fa-solid fa-check"></i><span>ปิดเคสแล้ว</span>';
+        }
+      }
+
+      updateSummaryDashboardStats();
+      alert("✅ แมนนวลปิดเคส SOS เรียบร้อยแล้ว");
+    }
+
+    function adminDismissCard(cardId, category) {
+      if (!confirm("ต้องการปิดการแสดงผลรายการนี้ออกจากหน้าจอใช่หรือไม่?")) return;
+      
+      if (category === 'Report') {
+        adminManualResolveReport(cardId);
+      } else if (category === 'SafeWalk') {
+        adminManualCompleteSafeWalk(cardId);
+      } else if (category === 'SOS') {
+        adminManualResolveSOS(cardId);
+      }
+
+      const card = document.getElementById('alert-' + cardId);
+      if (card) card.remove();
+      if (activeSessionsCache[cardId]) delete activeSessionsCache[cardId];
+      updateSummaryDashboardStats();
+    }
+
+    // RULE 22: Clear UI != Delete History!
+    // Safely removes completed/resolved sessions and reports from active display, preserving all database history.
+    function confirmClearActiveSessions(mode = 'RESOLVED_ONLY') {
+      const auth = getCaremeAuth();
+      const adminName = auth ? (auth.username || 'admin') : 'admin';
+      const eventId = 'ev_' + Date.now();
+      const timeNow = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+
+      if (mode === 'RESOLVE_ALL') {
+        // Resolve all active reports and sessions in Firebase
+        Object.keys(activeSessionsCache).forEach(id => {
+          const item = activeSessionsCache[id];
+          const cat = getEventCategory(item);
+          if (cat === 'Report') {
+            caremeDb.ref('reports/' + id).update({
+              status: 'RESOLVED',
+              resolvedAt: timeNow,
+              resolvedBy: adminName
+            });
+          } else if (cat === 'SafeWalk') {
+            caremeDb.ref('safeWalkSessions/' + id).update({
+              status: 'COMPLETED',
+              routeStatus: 'แอดมินปิดจบงานแล้ว',
+              completedAt: timeNow,
+              resolvedBy: adminName
+            });
+            caremeDb.ref('sos/' + id).update({
+              status: 'completed',
+              routeStatus: 'แอดมินปิดจบงานแล้ว'
+            });
+          } else if (cat === 'SOS') {
+            caremeDb.ref('sos/' + id).update({
+              status: 'RESOLVED',
+              resolvedAt: timeNow,
+              resolvedBy: adminName
+            });
+          }
+        });
+
+        caremeDb.ref('eventLogs/' + eventId).set({
+          eventId: eventId,
+          id: eventId,
+          eventType: 'ADMIN_CLEAR_ALL_ACTIVE',
+          userId: adminName,
+          timestamp: Date.now(),
+          time: timeNow
+        });
+
+        // Clear all cards from UI
+        document.getElementById('alertsContainer').innerHTML = `
+          <div id="emptyAlertState" class="text-center text-slate-500 py-16 text-xs">
+            <i class="fa-solid fa-bell-slash text-3xl mb-2 text-slate-600 block"></i>
+            ยังไม่มีสัญญาณ SOS หรือการแจ้งเหตุเข้ามาในขณะนี้
+          </div>`;
+
+        // Clear all layers from map
+        Object.values(markers).forEach(m => adminMap && adminMap.removeLayer(m));
+        Object.values(destMarkers).forEach(m => adminMap && adminMap.removeLayer(m));
+        Object.values(safewalkRoutes).forEach(r => adminMap && adminMap.removeLayer(r));
+        markers = {};
+        destMarkers = {};
+        safewalkRoutes = {};
+        activeSessionsCache = {};
+      } else {
+        // Mode: RESOLVED_ONLY
+        // Log clear event
+        caremeDb.ref('eventLogs/' + eventId).set({
+          eventId: eventId,
+          id: eventId,
+          eventType: 'CLEAR_ACTIVE_SESSION',
+          userId: adminName,
+          timestamp: Date.now(),
+          time: timeNow,
+          metadata: { clearedBy: adminName, mode: 'RESOLVED_ONLY' }
+        });
+
+        // Clear completed SafeWalk, resolved SOS, and resolved Report cards
+        const cards = document.querySelectorAll('#alertsContainer > [id^="alert-"]');
+        cards.forEach(card => {
+          const text = card.innerText || '';
+          const cardId = card.id.replace('alert-', '');
+          const session = activeSessionsCache[cardId];
+          const isResolved = session && (session.status === 'RESOLVED' || session.status === 'COMPLETED' || session.status === 'completed' || session.routeStatus === 'ถึงปลายทางแล้ว' || session.routeStatus === 'แอดมินปิดจบงานแล้ว');
+
+          if (isResolved || text.includes('ถึงปลายทางแล้ว') || text.includes('COMPLETED') || text.includes('ปิดงานแล้ว') || text.includes('ปิดเคสแล้ว') || text.includes('เสร็จสิ้น') || text.includes('ยกเลิก')) {
+            card.remove();
+            if (activeSessionsCache[cardId]) delete activeSessionsCache[cardId];
+            if (adminMap) {
+              if (safewalkRoutes[cardId]) { adminMap.removeLayer(safewalkRoutes[cardId]); delete safewalkRoutes[cardId]; }
+              if (markers[cardId]) { adminMap.removeLayer(markers[cardId]); delete markers[cardId]; }
+              if (destMarkers[cardId]) { adminMap.removeLayer(destMarkers[cardId]); delete destMarkers[cardId]; }
+            }
+          }
+        });
+      }
 
       updateSummaryDashboardStats();
       filterAdminFeed(currentAdminFeedFilter);
       closeClearActiveModal();
-      alert("✅ ล้างการแสดงผลเหตุการณ์ที่เสร็จสิ้นออกจากหน้าจอแล้ว (ประวัติทั้งหมดในฐานข้อมูลยังคงถูกบันทึกไว้อย่างปลอดภัย)");
+      alert("✅ ล้างการแสดงผลที่เสร็จสิ้น (SafeWalk, SOS และรายงาน) เรียบร้อยแล้ว");
     }
 
     // BroadcastChannel sync

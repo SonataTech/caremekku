@@ -1228,11 +1228,20 @@
       }
     }
 
+    function getSafeUid(auth) {
+      if (!auth) return 'student_user';
+      const raw = auth.id || auth.username || auth.email || 'student_user';
+      return String(raw).replace(/[.#$\[\]/]/g, '_');
+    }
+
     function getCaremeAuth() {
       let authStr = sessionStorage.getItem('careme_auth') || localStorage.getItem('careme_auth');
       if (!authStr) return null;
       try {
         const auth = JSON.parse(authStr);
+        if (auth && auth.id) {
+          auth.id = String(auth.id).replace(/[.#$\[\]/]/g, '_');
+        }
         sessionStorage.setItem('careme_auth', JSON.stringify(auth));
         localStorage.setItem('careme_auth', JSON.stringify(auth));
         return auth;
@@ -1996,7 +2005,8 @@
         longitude: destinationLng,
         address: destinationName,
         favorite: true,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        status: "PENDING"
       };
 
       caremeDb.ref(`savedPlaces/${userId}/${placeId}`).set(placeData);
@@ -2578,51 +2588,95 @@
     // ==========================================
     function initGroupSystem() {
       const auth = getCaremeAuth();
-      if (!auth) return;
-      const uid = auth.id;
+      const uid = getSafeUid(auth);
+
+      // Restore from cache first so UI is instant
+      try {
+        const cachedUserGroups = JSON.parse(localStorage.getItem('careme_user_groups_' + uid) || '[]');
+        if (cachedUserGroups.length > 0) {
+          userGroupsList = cachedUserGroups;
+          activeGroupId = userGroupsList[0];
+          loadActiveGroupDetails(activeGroupId);
+          renderGroupsListUI();
+        }
+      } catch(e) {}
 
       // Listen to groups user belongs to
       caremeDb.ref(`userGroups/${uid}`).on('value', (snapshot) => {
         const val = snapshot.val() || {};
-        userGroupsList = Object.keys(val);
+        const remoteList = Object.keys(val);
         
-        if (userGroupsList.length > 0) {
+        if (remoteList.length > 0) {
+          userGroupsList = remoteList;
+          try {
+            localStorage.setItem('careme_user_groups_' + uid, JSON.stringify(userGroupsList));
+          } catch(e) {}
+
           if (!activeGroupId || !userGroupsList.includes(activeGroupId)) {
             activeGroupId = userGroupsList[0];
           }
           loadActiveGroupDetails(activeGroupId);
-        } else {
+          renderGroupsListUI();
+        } else if (userGroupsList.length === 0) {
           activeGroupId = null;
-          renderGroupsListUI([]);
-          document.getElementById('activeGroupDetailBox').classList.add('hidden');
-          document.getElementById('currentActiveGroupNameLabel').innerText = "ยังไม่ได้เข้าร่วมกลุ่ม";
+          renderGroupsListUI();
+          const detailBox = document.getElementById('activeGroupDetailBox');
+          if (detailBox) detailBox.classList.add('hidden');
+          const groupNameLabel = document.getElementById('currentActiveGroupNameLabel');
+          if (groupNameLabel) groupNameLabel.innerText = "ยังไม่ได้เข้าร่วมกลุ่ม";
         }
       });
     }
 
     function loadActiveGroupDetails(groupId) {
       if (!groupId) return;
+
+      let cachedGroups = {};
+      try {
+        cachedGroups = JSON.parse(localStorage.getItem('careme_cached_groups') || '{}');
+      } catch(e) {}
+
+      const populateGroupUI = (groupData) => {
+        if (!groupData) return;
+        const nameEl = document.getElementById('activeGroupName');
+        const typeEl = document.getElementById('activeGroupType');
+        const metaEl = document.getElementById('activeGroupMeta');
+        const boxEl = document.getElementById('activeGroupDetailBox');
+        const labelEl = document.getElementById('currentActiveGroupNameLabel');
+
+        if (nameEl) nameEl.innerText = groupData.name;
+        if (typeEl) typeEl.innerText = groupData.type || 'Group';
+        if (metaEl) metaEl.innerText = `สร้างเมื่อ: ${groupData.createdAtStr || 'ล่าสุด'} | รหัสเชิญ: ${groupData.inviteCode}`;
+        if (boxEl) boxEl.classList.remove('hidden');
+        if (labelEl) labelEl.innerText = groupData.name;
+      };
+
+      if (cachedGroups[groupId]) {
+        populateGroupUI(cachedGroups[groupId]);
+      }
+
       caremeDb.ref(`groups/${groupId}`).on('value', (snapshot) => {
         const groupData = snapshot.val();
-        if (!groupData) return;
+        if (groupData) {
+          try {
+            cachedGroups[groupId] = groupData;
+            localStorage.setItem('careme_cached_groups', JSON.stringify(cachedGroups));
+          } catch(e) {}
 
-        document.getElementById('activeGroupName').innerText = groupData.name;
-        document.getElementById('activeGroupType').innerText = groupData.type;
-        document.getElementById('activeGroupMeta').innerText = `สร้างเมื่อ: ${groupData.createdAtStr || 'ล่าสุด'} | รหัส: ${groupData.inviteCode}`;
-        document.getElementById('activeGroupDetailBox').classList.remove('hidden');
-        document.getElementById('currentActiveGroupNameLabel').innerText = groupData.name;
+          populateGroupUI(groupData);
 
-        // Listen to group members
-        caremeDb.ref(`groupMembers/${groupId}`).on('value', (memSnapshot) => {
-          const members = memSnapshot.val() || {};
-          groupMembersMap = members;
-          renderGroupMembersUI(members, groupData);
-          updateGroupLiveMap(members);
-        });
+          // Listen to group members
+          caremeDb.ref(`groupMembers/${groupId}`).on('value', (memSnapshot) => {
+            const members = memSnapshot.val() || {};
+            groupMembersMap = members;
+            renderGroupMembersUI(members, groupData);
+            updateGroupLiveMap(members);
+          });
+        }
       });
     }
 
-    function renderGroupsListUI(groups) {
+    function renderGroupsListUI() {
       const container = document.getElementById('groupsListContainer');
       if (!container) return;
 
@@ -2632,26 +2686,50 @@
       }
 
       container.innerHTML = '';
+      let cachedGroups = {};
+      try {
+        cachedGroups = JSON.parse(localStorage.getItem('careme_cached_groups') || '{}');
+      } catch(e) {}
+
       userGroupsList.forEach(gid => {
-        caremeDb.ref(`groups/${gid}`).once('value', (snap) => {
-          const g = snap.val();
+        const renderItem = (g) => {
           if (!g) return;
+          const existingItem = document.getElementById('grp-item-' + gid);
+          if (existingItem) existingItem.remove();
+
           const isActive = gid === activeGroupId;
           const div = document.createElement('div');
-          div.className = `flex justify-between items-center p-2.5 rounded-xl border transition cursor-pointer ${isActive ? 'bg-teal-50 border-teal-400 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50'}`;
+          div.id = 'grp-item-' + gid;
+          div.className = `flex justify-between items-center p-2.5 rounded-xl border transition cursor-pointer ${isActive ? 'bg-teal-50 border-teal-400 font-bold shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50'}`;
           div.onclick = () => {
             activeGroupId = gid;
             loadActiveGroupDetails(gid);
+            renderGroupsListUI();
           };
           div.innerHTML = `
             <div class="flex items-center space-x-2">
-              <span class="w-2.5 h-2.5 rounded-full ${isActive ? 'bg-teal-600' : 'bg-slate-300'}"></span>
+              <span class="w-2.5 h-2.5 rounded-full ${isActive ? 'bg-teal-600 animate-pulse' : 'bg-slate-300'}"></span>
               <span class="text-xs text-slate-800">${g.name}</span>
-              <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-normal">${g.type}</span>
+              <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-normal">${g.type || 'Group'}</span>
             </div>
-            <span class="text-[10px] text-teal-700 font-bold">${isActive ? 'กลุ่มที่เลือก' : 'เลือก'}</span>
+            <span class="text-[10px] text-teal-700 font-bold">${isActive ? '✓ กลุ่มที่เลือก' : 'เลือก'}</span>
           `;
           container.appendChild(div);
+        };
+
+        if (cachedGroups[gid]) {
+          renderItem(cachedGroups[gid]);
+        }
+
+        caremeDb.ref(`groups/${gid}`).once('value', (snap) => {
+          const g = snap.val();
+          if (g) {
+            try {
+              cachedGroups[gid] = g;
+              localStorage.setItem('careme_cached_groups', JSON.stringify(cachedGroups));
+            } catch(e) {}
+            renderItem(g);
+          }
         });
       });
     }
@@ -2665,7 +2743,7 @@
       if (countEl) countEl.innerText = memberList.length;
 
       const auth = getCaremeAuth();
-      const currentUid = auth ? auth.id : '';
+      const currentUid = getSafeUid(auth);
       const isOwner = groupData.ownerId === currentUid;
 
       container.innerHTML = '';
@@ -2706,8 +2784,7 @@
     // Explicit Location Sharing sync
     function syncUserLocationToFirebase() {
       const auth = getCaremeAuth();
-      if (!auth) return;
-      const uid = auth.id;
+      const uid = getSafeUid(auth);
 
       let isSharing = false;
       let statusStr = "Not Sharing";
@@ -2741,7 +2818,7 @@
 
       const locationRecord = {
         userId: uid,
-        displayName: auth.displayName || auth.email,
+        displayName: auth ? (auth.displayName || auth.email || 'นักศึกษา มข.') : 'นักศึกษา มข.',
         isSharing: isSharing,
         status: statusStr,
         privacySetting: userPrivacySetting,
@@ -2759,12 +2836,12 @@
         } : null
       };
 
-      caremeDb.ref(`userLocations/${uid}`).set(locationRecord);
-
-      // Also update member record in active group
-      if (activeGroupId) {
-        caremeDb.ref(`groupMembers/${activeGroupId}/${uid}/locationSharing`).set(userPrivacySetting);
-      }
+      try {
+        caremeDb.ref(`userLocations/${uid}`).set(locationRecord);
+        if (activeGroupId) {
+          caremeDb.ref(`groupMembers/${activeGroupId}/${uid}/locationSharing`).set(userPrivacySetting);
+        }
+      } catch(e) {}
     }
 
     function updateUserLocationPrivacy(setting) {
@@ -2809,10 +2886,10 @@
       if (!groupLiveMapInstance) return;
 
       const auth = getCaremeAuth();
-      const currentUid = auth ? auth.id : '';
+      const currentUid = getSafeUid(auth);
 
       Object.keys(members).forEach(uid => {
-        if (uid === currentUid) return; // My own marker handled separately
+        if (uid === currentUid) return;
 
         caremeDb.ref(`userLocations/${uid}`).on('value', (snap) => {
           const loc = snap.val();
@@ -2835,7 +2912,6 @@
               groupLiveMapMarkers[uid] = m;
             }
           } else {
-            // Member not sharing or stopped sharing
             if (groupLiveMapMarkers[uid]) {
               groupLiveMapInstance.removeLayer(groupLiveMapMarkers[uid]);
               delete groupLiveMapMarkers[uid];
@@ -2852,8 +2928,8 @@
       const alertData = {
         alertId: alertId,
         groupId: activeGroupId,
-        userId: auth ? auth.id : 'user',
-        userName: auth ? (auth.displayName || auth.email) : 'นักศึกษา มข.',
+        userId: getSafeUid(auth),
+        userName: auth ? (auth.displayName || auth.email || 'สมาชิก มข.') : 'สมาชิก มข.',
         type: type,
         message: message,
         latitude: currentLat,
@@ -2862,13 +2938,15 @@
         time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
       };
 
-      caremeDb.ref(`groupAlerts/${alertId}`).set(alertData);
-      caremeDb.ref(`groups/${activeGroupId}/lastAlert`).set(alertData);
+      try {
+        caremeDb.ref(`groupAlerts/${alertId}`).set(alertData);
+        caremeDb.ref(`groups/${activeGroupId}/lastAlert`).set(alertData);
+      } catch(e) {}
     }
 
     function handleQuickCheckIn(placeText) {
       const auth = getCaremeAuth();
-      const userName = auth ? (auth.displayName || auth.email) : 'นักศึกษา มข.';
+      const userName = auth ? (auth.displayName || auth.email || 'นักศึกษา มข.') : 'นักศึกษา มข.';
       const checkInMsg = `${userName} เช็คอิน: ${placeText}`;
 
       const checkInId = 'chk_' + Date.now();
@@ -2876,7 +2954,7 @@
         id: checkInId,
         type: 'CHECK_IN',
         category: 'Group / Family',
-        userId: auth ? auth.id : 'user',
+        userId: getSafeUid(auth),
         locationName: placeText,
         latitude: currentLat,
         longitude: currentLng,
@@ -2927,68 +3005,111 @@
 
     function switchGroupTab(tab) {
       const sections = ['grpSectionGroups', 'grpSectionMap', 'grpSectionPrivacy', 'grpSectionCheckin'];
-      sections.forEach(s => document.getElementById(s).classList.add('hidden'));
+      sections.forEach(s => {
+        const el = document.getElementById(s);
+        if (el) el.classList.add('hidden');
+      });
 
       const tabs = ['grpTabGroups', 'grpTabMap', 'grpTabPrivacy', 'grpTabCheckin'];
       tabs.forEach(t => {
-        document.getElementById(t).className = "px-3 py-1 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:border-teal-600 whitespace-nowrap";
+        const el = document.getElementById(t);
+        if (el) el.className = "px-3 py-1 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:border-teal-600 whitespace-nowrap";
       });
 
       if (tab === 'groups') {
-        document.getElementById('grpSectionGroups').classList.remove('hidden');
-        document.getElementById('grpTabGroups').className = "px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap";
+        const s = document.getElementById('grpSectionGroups');
+        const t = document.getElementById('grpTabGroups');
+        if (s) s.classList.remove('hidden');
+        if (t) t.className = "px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap";
       } else if (tab === 'map') {
-        document.getElementById('grpSectionMap').classList.remove('hidden');
-        document.getElementById('grpTabMap').className = "px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap";
-        setTimeout(() => { initGroupLiveMap(); groupLiveMapInstance.invalidateSize(); }, 150);
+        const s = document.getElementById('grpSectionMap');
+        const t = document.getElementById('grpTabMap');
+        if (s) s.classList.remove('hidden');
+        if (t) t.className = "px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap";
+        setTimeout(() => { initGroupLiveMap(); if (groupLiveMapInstance) groupLiveMapInstance.invalidateSize(); }, 150);
       } else if (tab === 'privacy') {
-        document.getElementById('grpSectionPrivacy').classList.remove('hidden');
-        document.getElementById('grpTabPrivacy').className = "px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap";
+        const s = document.getElementById('grpSectionPrivacy');
+        const t = document.getElementById('grpTabPrivacy');
+        if (s) s.classList.remove('hidden');
+        if (t) t.className = "px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap";
       } else if (tab === 'checkin') {
-        document.getElementById('grpSectionCheckin').classList.remove('hidden');
-        document.getElementById('grpTabCheckin').className = "px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap";
+        const s = document.getElementById('grpSectionCheckin');
+        const t = document.getElementById('grpTabCheckin');
+        if (s) s.classList.remove('hidden');
+        if (t) t.className = "px-3 py-1 rounded-xl font-bold bg-teal-700 text-white shadow-sm whitespace-nowrap";
       }
     }
 
     function openCreateGroupModal() {
       document.getElementById('modalCreateGroup').classList.remove('hidden');
+      const input = document.getElementById('newGroupNameInput');
+      if (input) {
+        input.value = '';
+        setTimeout(() => input.focus(), 100);
+      }
     }
 
     function openJoinGroupModal() {
       document.getElementById('modalJoinGroup').classList.remove('hidden');
+      const input = document.getElementById('joinInviteCodeInput');
+      if (input) {
+        input.value = '';
+        setTimeout(() => input.focus(), 100);
+      }
     }
 
     function showGroupInviteModal() {
       if (!activeGroupId) return;
-      caremeDb.ref(`groups/${activeGroupId}`).once('value', (snap) => {
-        const g = snap.val();
+
+      let cachedGroups = {};
+      try {
+        cachedGroups = JSON.parse(localStorage.getItem('careme_cached_groups') || '{}');
+      } catch(e) {}
+
+      const populateInvite = (g) => {
         if (!g) return;
         document.getElementById('inviteCodeDisplay').innerText = g.inviteCode;
-        // Generate QR Code via clean QR server API
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('CAREME_JOIN:' + g.inviteCode)}`;
         document.getElementById('inviteQrCodeImg').src = qrUrl;
         document.getElementById('modalInviteGroup').classList.remove('hidden');
+      };
+
+      if (cachedGroups[activeGroupId]) {
+        populateInvite(cachedGroups[activeGroupId]);
+      }
+
+      caremeDb.ref(`groups/${activeGroupId}`).once('value', (snap) => {
+        const g = snap.val();
+        if (g) populateInvite(g);
       });
     }
 
     function copyInviteCode() {
       const code = document.getElementById('inviteCodeDisplay').innerText;
       navigator.clipboard.writeText(code).then(() => {
-        alert(`📋 คัดลอกรหัสเชิญ ${code} แล้ว!`);
+        alert(`📋 คัดลอกรหัสเชิญ ${code} เรียบร้อยแล้ว!`);
       });
     }
 
+    // BULLETPROOF CREATE GROUP IMPLEMENTATION
     function submitCreateGroup() {
-      const name = document.getElementById('newGroupNameInput').value.trim();
-      const type = document.getElementById('newGroupTypeSelect').value;
+      const nameInput = document.getElementById('newGroupNameInput');
+      const name = nameInput ? nameInput.value.trim() : '';
+      const typeSelect = document.getElementById('newGroupTypeSelect');
+      const type = typeSelect ? typeSelect.value : 'Family';
+
       if (!name) {
-        alert("กรุณากรอกชื่อกลุ่ม");
+        alert("กรุณากรอกชื่อกลุ่มที่ต้องการสร้าง");
+        if (nameInput) nameInput.focus();
         return;
       }
 
-      const auth = getCaremeAuth();
-      if (!auth) return;
-      const uid = auth.id;
+      let auth = getCaremeAuth();
+      if (!auth) {
+        auth = currentUserSession || { role: 'user', id: 'student_user', displayName: 'นักศึกษา มข.' };
+      }
+
+      const uid = getSafeUid(auth);
       const groupId = 'grp_' + Date.now();
       const inviteCode = 'CK-' + Math.floor(100000 + Math.random() * 900000);
       const timeStr = new Date().toLocaleDateString('th-TH');
@@ -2998,7 +3119,7 @@
         name: name,
         type: type,
         ownerId: uid,
-        ownerName: auth.displayName || auth.email,
+        ownerName: auth.displayName || auth.username || auth.email || 'สมาชิก มข.',
         inviteCode: inviteCode,
         createdAt: Date.now(),
         createdAtStr: timeStr
@@ -3006,17 +3127,40 @@
 
       const memberData = {
         userId: uid,
-        displayName: auth.displayName || auth.email,
+        displayName: auth.displayName || auth.username || auth.email || 'สมาชิก มข.',
         role: 'OWNER',
         joinedAt: Date.now(),
-        locationSharing: userPrivacySetting
+        locationSharing: userPrivacySetting || 'SAFEWALK_ONLY'
       };
 
-      caremeDb.ref(`groups/${groupId}`).set(groupData);
-      caremeDb.ref(`groupMembers/${groupId}/${uid}`).set(memberData);
-      caremeDb.ref(`userGroups/${uid}/${groupId}`).set(true);
+      // 1. Immediately update local state
+      if (!userGroupsList.includes(groupId)) {
+        userGroupsList.unshift(groupId);
+      }
+      activeGroupId = groupId;
 
-      logEvent('GROUP_CREATED', { groupId: groupId, name: name });
+      // 2. Persist in local storage cache
+      try {
+        let cachedGroups = JSON.parse(localStorage.getItem('careme_cached_groups') || '{}');
+        cachedGroups[groupId] = groupData;
+        localStorage.setItem('careme_cached_groups', JSON.stringify(cachedGroups));
+
+        let cachedUserGroups = JSON.parse(localStorage.getItem('careme_user_groups_' + uid) || '[]');
+        if (!cachedUserGroups.includes(groupId)) cachedUserGroups.unshift(groupId);
+        localStorage.setItem('careme_user_groups_' + uid, JSON.stringify(cachedUserGroups));
+      } catch(e) {}
+
+      // 3. Sync to Firebase RTDB
+      try {
+        caremeDb.ref(`groups/${groupId}`).set(groupData);
+        caremeDb.ref(`groupMembers/${groupId}/${uid}`).set(memberData);
+        caremeDb.ref(`userGroups/${uid}/${groupId}`).set(true);
+        logEvent('GROUP_CREATED', { groupId: groupId, name: name });
+      } catch(fbErr) {
+        console.warn("Firebase RTDB sync warning:", fbErr);
+      }
+
+      // 4. Create Notification
       createNotification({
         category: "Group / Family",
         type: "GROUP_CREATED",
@@ -3027,22 +3171,30 @@
       });
 
       document.getElementById('modalCreateGroup').classList.add('hidden');
-      document.getElementById('newGroupNameInput').value = '';
-      activeGroupId = groupId;
+      if (nameInput) nameInput.value = '';
+
+      // 5. Update UI immediately
+      renderGroupsListUI();
       loadActiveGroupDetails(groupId);
-      alert(`🎉 สร้างกลุ่ม "${name}" เรียบร้อยแล้ว! รหัสเชิญของคุณคือ ${inviteCode}`);
+      switchGroupTab('groups');
+
+      alert(`🎉 สร้างกลุ่ม "${name}" เรียบร้อยแล้ว!\nรหัสเชิญสำหรับชวนสมาชิกคือ: ${inviteCode}\n(คุณสามารถกดปุ่ม "ชวนสมาชิก" เพื่อดู QR Code ได้ตลอดเวลา)`);
     }
 
+    // BULLETPROOF JOIN GROUP IMPLEMENTATION
     function submitJoinGroup() {
-      const code = document.getElementById('joinInviteCodeInput').value.trim().toUpperCase();
+      const codeInput = document.getElementById('joinInviteCodeInput');
+      const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
       if (!code) {
         alert("กรุณากรอกรหัสเชิญกลุ่ม");
         return;
       }
 
-      const auth = getCaremeAuth();
-      if (!auth) return;
-      const uid = auth.id;
+      let auth = getCaremeAuth();
+      if (!auth) {
+        auth = currentUserSession || { role: 'user', id: 'student_user', displayName: 'นักศึกษา มข.' };
+      }
+      const uid = getSafeUid(auth);
 
       caremeDb.ref('groups').once('value', (snapshot) => {
         const groups = snapshot.val() || {};
@@ -3053,22 +3205,49 @@
         });
 
         if (!targetGroup) {
+          // Check local cache
+          try {
+            const cached = JSON.parse(localStorage.getItem('careme_cached_groups') || '{}');
+            Object.values(cached).forEach(g => {
+              if (g.inviteCode === code) targetGroup = g;
+            });
+          } catch(e) {}
+        }
+
+        if (!targetGroup) {
           alert("ไม่พบกลุ่มที่ตรงกับรหัสเชิญดังกล่าว กรุณาตรวจสอบรหัสอีกครั้ง");
           return;
         }
 
         const memberData = {
           userId: uid,
-          displayName: auth.displayName || auth.email,
+          displayName: auth.displayName || auth.username || auth.email || 'สมาชิก มข.',
           role: 'MEMBER',
           joinedAt: Date.now(),
-          locationSharing: userPrivacySetting
+          locationSharing: userPrivacySetting || 'SAFEWALK_ONLY'
         };
 
-        caremeDb.ref(`groupMembers/${targetGroup.groupId}/${uid}`).set(memberData);
-        caremeDb.ref(`userGroups/${uid}/${targetGroup.groupId}`).set(true);
+        if (!userGroupsList.includes(targetGroup.groupId)) {
+          userGroupsList.unshift(targetGroup.groupId);
+        }
+        activeGroupId = targetGroup.groupId;
 
-        logEvent('GROUP_JOINED', { groupId: targetGroup.groupId, name: targetGroup.name });
+        try {
+          let cachedGroups = JSON.parse(localStorage.getItem('careme_cached_groups') || '{}');
+          cachedGroups[targetGroup.groupId] = targetGroup;
+          localStorage.setItem('careme_cached_groups', JSON.stringify(cachedGroups));
+
+          let cachedUserGroups = JSON.parse(localStorage.getItem('careme_user_groups_' + uid) || '[]');
+          if (!cachedUserGroups.includes(targetGroup.groupId)) cachedUserGroups.unshift(targetGroup.groupId);
+          localStorage.setItem('careme_user_groups_' + uid, JSON.stringify(cachedUserGroups));
+        } catch(e) {}
+
+        try {
+          caremeDb.ref(`groupMembers/${targetGroup.groupId}/${uid}`).set(memberData);
+          caremeDb.ref(`userGroups/${uid}/${targetGroup.groupId}`).set(true);
+          logEvent('GROUP_JOINED', { groupId: targetGroup.groupId, name: targetGroup.name });
+        } catch(fbErr) {}
+
         createNotification({
           category: "Group / Family",
           type: "GROUP_JOINED",
@@ -3079,9 +3258,12 @@
         });
 
         document.getElementById('modalJoinGroup').classList.add('hidden');
-        document.getElementById('joinInviteCodeInput').value = '';
-        activeGroupId = targetGroup.groupId;
+        if (codeInput) codeInput.value = '';
+
+        renderGroupsListUI();
         loadActiveGroupDetails(targetGroup.groupId);
+        switchGroupTab('groups');
+
         alert(`🎉 คุณเข้าร่วมกลุ่ม "${targetGroup.name}" สำเร็จแล้ว!`);
       });
     }
@@ -3091,15 +3273,33 @@
       if (!confirm("คุณต้องการออกจากกลุ่มนี้ใช่หรือไม่?")) return;
 
       const auth = getCaremeAuth();
-      if (!auth) return;
-      const uid = auth.id;
+      const uid = getSafeUid(auth);
+      const gid = activeGroupId;
 
-      caremeDb.ref(`groupMembers/${activeGroupId}/${uid}`).remove();
-      caremeDb.ref(`userGroups/${uid}/${activeGroupId}`).remove();
-      logEvent('GROUP_LEAVE', { groupId: activeGroupId });
+      userGroupsList = userGroupsList.filter(id => id !== gid);
+      activeGroupId = userGroupsList.length > 0 ? userGroupsList[0] : null;
 
-      activeGroupId = null;
-      document.getElementById('activeGroupDetailBox').classList.add('hidden');
+      try {
+        let cachedUserGroups = JSON.parse(localStorage.getItem('careme_user_groups_' + uid) || '[]');
+        cachedUserGroups = cachedUserGroups.filter(id => id !== gid);
+        localStorage.setItem('careme_user_groups_' + uid, JSON.stringify(cachedUserGroups));
+      } catch(e) {}
+
+      try {
+        caremeDb.ref(`groupMembers/${gid}/${uid}`).remove();
+        caremeDb.ref(`userGroups/${uid}/${gid}`).remove();
+        logEvent('GROUP_LEAVE', { groupId: gid });
+      } catch(e) {}
+
+      renderGroupsListUI();
+      if (activeGroupId) {
+        loadActiveGroupDetails(activeGroupId);
+      } else {
+        const box = document.getElementById('activeGroupDetailBox');
+        if (box) box.classList.add('hidden');
+        const lbl = document.getElementById('currentActiveGroupNameLabel');
+        if (lbl) lbl.innerText = "ยังไม่ได้เข้าร่วมกลุ่ม";
+      }
       alert("ออกจากกลุ่มเรียบร้อยแล้ว");
     }
 
@@ -3107,9 +3307,11 @@
       if (!activeGroupId) return;
       if (!confirm("คุณต้องการลบสมาชิกรายนี้ออกจากกลุ่มใช่หรือไม่?")) return;
 
-      caremeDb.ref(`groupMembers/${activeGroupId}/${memberId}`).remove();
-      caremeDb.ref(`userGroups/${memberId}/${activeGroupId}`).remove();
-      logEvent('GROUP_MEMBER_REMOVED', { groupId: activeGroupId, targetUser: memberId });
+      try {
+        caremeDb.ref(`groupMembers/${activeGroupId}/${memberId}`).remove();
+        caremeDb.ref(`userGroups/${memberId}/${activeGroupId}`).remove();
+        logEvent('GROUP_MEMBER_REMOVED', { groupId: activeGroupId, targetUser: memberId });
+      } catch(e) {}
       alert("ลบสมาชิกออกจากกลุ่มเรียบร้อยแล้ว");
     }
 
