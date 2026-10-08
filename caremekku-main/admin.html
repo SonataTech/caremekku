@@ -24,6 +24,7 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
 
+  <!-- ADMIN ACCESS PROTECTION CHECK -->
   <div id="adminProtectedView" class="hidden flex-1 flex flex-col justify-center items-center p-6 text-center">
     <div class="bg-slate-800 border border-red-500/50 p-8 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
       <div class="w-16 h-16 bg-red-500/20 text-red-400 rounded-2xl mx-auto flex items-center justify-center text-3xl">
@@ -37,7 +38,9 @@
     </div>
   </div>
 
+  <!-- MAIN ADMIN DASHBOARD -->
   <div id="adminMainDashboard" class="flex flex-col flex-1">
+    <!-- NAVBAR -->
     <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center shadow-lg">
       <div class="flex items-center space-x-3">
         <div class="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center font-bold text-white shadow-md">
@@ -54,13 +57,16 @@
           <span>ล้างประวัติการแจ้งเตือน</span>
         </button>
         <a href="index.html" class="bg-kkuBlue hover:bg-blue-600 text-white text-xs px-4 py-2 rounded-lg font-bold transition flex items-center space-x-1 shadow">
-          <i class="fa-solid fa-mobile-screen"></i>
-          <span>เปิดหน้าแอปนักศึกษา</span>
+          <i class="fa-solid fa-house"></i>
+          <span>กลับสู่หน้า User Home</span>
         </a>
       </div>
     </header>
 
+    <!-- MAIN DASHBOARD CONTENT -->
     <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+      
+      <!-- LEFT PANEL: ALERTS LIST -->
       <div class="lg:col-span-1 space-y-4 flex flex-col">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex-1 flex flex-col shadow-md">
           <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-3">
@@ -83,6 +89,7 @@
         </div>
       </div>
 
+      <!-- RIGHT PANEL: MAP & DETAILS -->
       <div class="lg:col-span-2 space-y-4 flex flex-col">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex-1 flex flex-col shadow-md">
           <div class="flex justify-between items-center mb-3">
@@ -96,6 +103,7 @@
           <div id="adminMap" class="w-full h-[550px] rounded-xl overflow-hidden border border-slate-700"></div>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -117,6 +125,7 @@
     firebase.initializeApp(firebaseConfig);
     const caremeDb = firebase.database();
 
+    // Admin Access Protection & Authorization Check
     function verifyAdminAccess() {
       const authDataStr = sessionStorage.getItem('careme_auth');
       if (!authDataStr) {
