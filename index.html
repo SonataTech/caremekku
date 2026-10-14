@@ -1020,6 +1020,8 @@
     // SafeWalk state
     let activeSessionId = null;
     let activeSessionType = null;
+    let isTriggeringSOS = false;
+    let activeSessionRef = null;
     let currentRoadRouteGeometry = []; // Array of [lat, lng] from OSRM
     let currentRoadDistanceMeters = 0;
     let currentRoadDurationMinutes = 0;
@@ -1424,9 +1426,18 @@
         userNotifications = [];
       }
 
+      // Deduplicate loaded localStorage notifications
+      const seen = new Set();
+      userNotifications = userNotifications.filter(n => {
+        const key = n.id || n.notificationId;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
       const auth = getCaremeAuth();
       if (auth) {
-        const uid = auth.id || 'default_user';
+        const uid = getSafeUid(auth);
         caremeDb.ref(`notifications/${uid}`).limitToLast(50).once('value', (snapshot) => {
           const val = snapshot.val();
           if (val) {
@@ -1434,8 +1445,13 @@
             const existingIds = new Set(userNotifications.map(n => n.id || n.notificationId));
             list.forEach(item => {
               const id = item.id || item.notificationId;
-              if (!existingIds.has(id)) {
-                userNotifications.unshift(item);
+              if (id && !existingIds.has(id)) {
+                const isDupSOS = item.category === 'SOS' && item.relatedId && 
+                  userNotifications.some(n => n.category === 'SOS' && n.relatedId === item.relatedId);
+                if (!isDupSOS) {
+                  existingIds.add(id);
+                  userNotifications.unshift(item);
+                }
               }
             });
             userNotifications.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -1460,7 +1476,7 @@
       lastLevels: {}
     };
 
-    function createNotification({ category, type, message, relatedId, latitude, longitude, priority, force = false }) {
+    function createNotification({ id, category, type, message, relatedId, latitude, longitude, priority, force = false }) {
       const validCategories = ["SafeWalk", "SOS", "Group / Family", "Danger Area", "GPS", "Report"];
       const finalCategory = validCategories.includes(category) ? category : "SafeWalk";
 
@@ -1476,9 +1492,20 @@
       }
       notifTracker.lastTimes[trackKey] = now;
 
-      const notifId = 'notif_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      // Unique stable Event ID matching
+      const notifId = id || (finalCategory === 'SOS' && relatedId ? relatedId : ('notif_' + Date.now() + '_' + Math.floor(Math.random() * 1000)));
       const auth = getCaremeAuth();
-      const userId = auth ? (auth.id || auth.email || 'student_user') : 'student_user';
+      const userId = getSafeUid(auth);
+
+      // Check if notification already exists in userNotifications to prevent duplicate
+      const existingNotif = userNotifications.find(n => 
+        (n.id && n.id === notifId) || 
+        (n.notificationId && n.notificationId === notifId) ||
+        (relatedId && n.relatedId === relatedId && n.category === 'SOS' && finalCategory === 'SOS')
+      );
+      if (existingNotif) {
+        return existingNotif;
+      }
 
       // Rule 18: Title MUST be category system name!
       const notifObj = {
@@ -1502,7 +1529,7 @@
       persistNotifications();
       updateNotificationUI();
 
-      // Sync to Firebase
+      // Sync to Firebase (idempotent write)
       caremeDb.ref(`notifications/${userId}/${notifId}`).set(notifObj);
       caremeDb.ref(`allNotifications/${notifId}`).set(notifObj);
       channel.postMessage({ type: 'NEW_NOTIFICATION', payload: notifObj });
@@ -2093,12 +2120,45 @@
     // ==========================================
     // 13. CONTINUOUS GPS TRACKING & SAFEWALK FLOW
     // ==========================================
-    function startContinuousGPSTracking(title, type) {
+    function startContinuousGPSTracking(title, type, existingSessionId = null) {
       if (gpsInterval) clearInterval(gpsInterval);
       if (checkpointInterval) clearInterval(checkpointInterval);
 
-      activeSessionId = 'session_' + Date.now();
+      activeSessionId = existingSessionId || ((type === 'SOS' ? 'sos_' : 'session_') + Date.now() + '_' + Math.floor(Math.random() * 1000));
       activeSessionType = type;
+
+      // Teardown previous session listener if exists
+      if (activeSessionRef) {
+        activeSessionRef.off();
+        activeSessionRef = null;
+      }
+
+      // Auto-sync cancellation/resolution from admin
+      activeSessionRef = caremeDb.ref('sos/' + activeSessionId);
+      activeSessionRef.on('value', (snap) => {
+        const val = snap.val();
+        if (val && (val.status === 'RESOLVED' || val.status === 'CANCELLED' || val.status === 'ended')) {
+          if (activeSessionId) {
+            if (gpsInterval) clearInterval(gpsInterval);
+            if (checkpointInterval) clearInterval(checkpointInterval);
+            gpsInterval = null;
+            checkpointInterval = null;
+            activeSessionId = null;
+            activeSessionType = null;
+            const banner = document.getElementById('trackingStatusBanner');
+            if (banner) banner.classList.add('hidden');
+            const safeBox = document.getElementById('activeSafeWalkBox');
+            if (safeBox) safeBox.classList.add('hidden');
+            const safeControls = document.getElementById('safeWalkControls');
+            if (safeControls) safeControls.classList.remove('hidden');
+            if (activeSessionRef) {
+              activeSessionRef.off();
+              activeSessionRef = null;
+            }
+          }
+        }
+      });
+
       consecutiveNearDestCount = 0;
       consecutiveDeviationCount = 0;
       currentRouteDeviationStatus = 'ON_ROUTE';
@@ -2451,6 +2511,11 @@
       gpsInterval = null;
       checkpointInterval = null;
 
+      if (activeSessionRef) {
+        activeSessionRef.off();
+        activeSessionRef = null;
+      }
+
       if (activeSessionId) {
         caremeDb.ref('safeWalkSessions/' + activeSessionId).update({
           status: 'ended',
@@ -2461,6 +2526,10 @@
           status: 'ended',
           routeStatus: 'ยกเลิกการเดินทาง'
         });
+        caremeDb.ref('allNotifications/' + activeSessionId).update({
+          status: 'ended',
+          archived: true
+        });
         logEvent('TRACKING_STOPPED', { sessionId: activeSessionId });
       }
 
@@ -2469,6 +2538,7 @@
       document.getElementById('safeWalkControls').classList.remove('hidden');
       alert("🛑 ยกเลิกการติดตามเรียบร้อยแล้ว");
       activeSessionId = null;
+      activeSessionType = null;
       syncUserLocationToFirebase();
     }
 
@@ -2476,21 +2546,58 @@
     // 14. SOS EMERGENCY TRIGGER
     // ==========================================
     function triggerSOS() {
-      startContinuousGPSTracking("ขอความช่วยเหลือฉุกเฉิน (GPS สด)", 'SOS');
+      // 1. Prevent concurrent trigger invocations
+      if (isTriggeringSOS) {
+        console.warn("SOS trigger already in progress, ignoring duplicate call.");
+        return;
+      }
 
-      // Rule 18: title must be 'SOS'
-      createNotification({
-        category: "SOS",
-        type: "SOS_STARTED",
-        message: "มีการแจ้งเหตุฉุกเฉิน ขอความช่วยเหลือด่วน (GPS Real-time)",
-        priority: "CRITICAL",
-        relatedId: activeSessionId,
-        force: true
-      });
+      // 2. Prevent unintentional duplicate event if SOS is already actively running
+      if (activeSessionId && activeSessionType === 'SOS') {
+        syncUserLocationToFirebase();
+        if (currentLat && currentLng) {
+          caremeDb.ref('sos/' + activeSessionId).update({
+            currentLatitude: currentLat,
+            currentLongitude: currentLng,
+            lat: currentLat,
+            lng: currentLng,
+            accuracy: currentAccuracy,
+            lastUpdatedAt: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+          });
+        }
+        showNotificationToast({
+          category: 'SOS',
+          title: 'SOS',
+          message: 'สัญญาณ SOS กำลังทำงานและติดตามตำแหน่ง GPS สดอย่างต่อเนื่อง',
+          time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+        });
+        return;
+      }
 
-      // Alert Group immediately
-      sendGroupAlert('SOS', "🚨 สมาชิกแจ้งเหตุฉุกเฉิน SOS ขอความช่วยเหลือด่วน!");
-      syncUserLocationToFirebase();
+      isTriggeringSOS = true;
+      try {
+        const sosEventId = 'sos_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+        startContinuousGPSTracking("ขอความช่วยเหลือฉุกเฉิน (GPS สด)", 'SOS', sosEventId);
+
+        // Rule 18: title must be 'SOS'
+        createNotification({
+          id: sosEventId,
+          category: "SOS",
+          type: "SOS_STARTED",
+          message: "มีการแจ้งเหตุฉุกเฉิน ขอความช่วยเหลือด่วน (GPS Real-time)",
+          priority: "CRITICAL",
+          relatedId: sosEventId,
+          force: true
+        });
+
+        // Alert Group immediately
+        sendGroupAlert('SOS', "🚨 สมาชิกแจ้งเหตุฉุกเฉิน SOS ขอความช่วยเหลือด่วน!");
+        syncUserLocationToFirebase();
+      } finally {
+        setTimeout(() => {
+          isTriggeringSOS = false;
+        }, 500);
+      }
     }
 
     // ==========================================
@@ -3442,9 +3549,36 @@
     channel.onmessage = (event) => {
       const { type, payload } = event.data || {};
       if (type === 'NEW_NOTIFICATION' && payload) {
-        userNotifications.unshift(payload);
-        persistNotifications();
-        updateNotificationUI();
+        const pId = payload.id || payload.notificationId;
+        const exists = userNotifications.some(n => 
+          (n.id && n.id === pId) || 
+          (n.notificationId && n.notificationId === pId) ||
+          (payload.relatedId && n.relatedId === payload.relatedId && payload.category === 'SOS' && n.category === 'SOS')
+        );
+        if (!exists) {
+          userNotifications.unshift(payload);
+          persistNotifications();
+          updateNotificationUI();
+        }
+      } else if ((type === 'STOP_TRACKING' || type === 'RESOLVE_SOS' || type === 'END_SAFEWALK') && payload) {
+        if (!payload.id || payload.id === activeSessionId) {
+          if (gpsInterval) clearInterval(gpsInterval);
+          if (checkpointInterval) clearInterval(checkpointInterval);
+          gpsInterval = null;
+          checkpointInterval = null;
+          activeSessionId = null;
+          activeSessionType = null;
+          if (activeSessionRef) {
+            activeSessionRef.off();
+            activeSessionRef = null;
+          }
+          const banner = document.getElementById('trackingStatusBanner');
+          if (banner) banner.classList.add('hidden');
+          const safeBox = document.getElementById('activeSafeWalkBox');
+          if (safeBox) safeBox.classList.add('hidden');
+          const safeControls = document.getElementById('safeWalkControls');
+          if (safeControls) safeControls.classList.remove('hidden');
+        }
       }
     };
 

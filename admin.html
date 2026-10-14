@@ -556,28 +556,58 @@
         (data.routeStatus && data.routeStatus.includes('ยกเลิก'));
     }
 
+    function findExistingEventKey(data) {
+      if (!data) return null;
+      const directId = data.id || data.sessionId || data.notificationId;
+      if (directId && (activeSessionsCache[directId] || document.getElementById('alert-' + directId))) {
+        return directId;
+      }
+      if (data.relatedId && (activeSessionsCache[data.relatedId] || document.getElementById('alert-' + data.relatedId))) {
+        return data.relatedId;
+      }
+      for (const [key, item] of Object.entries(activeSessionsCache)) {
+        if (directId && (key === directId || item.id === directId || item.sessionId === directId || item.notificationId === directId || item.relatedId === directId)) {
+          return key;
+        }
+        if (data.relatedId && (key === data.relatedId || item.id === data.relatedId || item.sessionId === data.relatedId || item.notificationId === data.relatedId || item.relatedId === data.relatedId)) {
+          return key;
+        }
+      }
+      return null;
+    }
+
     function handleRealtimeItemUpdate(data, defaultCategory) {
       if (!data) return;
-      const id = data.id || data.sessionId || data.notificationId;
-      if (!id) return;
+      const directId = data.id || data.sessionId || data.notificationId || data.relatedId;
+      if (!directId) return;
 
       const cat = getEventCategory(data, defaultCategory);
+      const existingKey = findExistingEventKey(data);
+      const id = existingKey || directId;
 
       if (isEventFinished(data)) {
         // Automatically remove finished/cancelled item from live feed and map!
         removeAlertFromUI(id);
+        if (existingKey && existingKey !== directId) {
+          removeAlertFromUI(directId);
+        }
         return;
       }
 
       // Active item: update cache and live feed/map
-      activeSessionsCache[id] = data;
-      addAlertCard(data, cat);
+      if (existingKey && activeSessionsCache[existingKey]) {
+        activeSessionsCache[existingKey] = Object.assign({}, activeSessionsCache[existingKey], data, { id: existingKey });
+      } else {
+        activeSessionsCache[id] = Object.assign({}, data, { id: id });
+      }
+
+      addAlertCard(activeSessionsCache[id], cat);
 
       if (cat === 'SafeWalk') {
-        updateSafeWalkCard(data);
-        updateSafeWalkMap(data);
+        updateSafeWalkCard(activeSessionsCache[id]);
+        updateSafeWalkMap(activeSessionsCache[id]);
       } else if (cat === 'Report') {
-        updateReportCard(data);
+        updateReportCard(activeSessionsCache[id]);
         if (data.lat && data.lng) {
           addMapMarker(id, data.lat, data.lng, data.title || 'รายงานเหตุ', cat);
         }
@@ -614,22 +644,38 @@
             activeSessionsCache = {};
 
             const allItems = [...Object.values(sosVal), ...Object.values(reportVal)];
-            let activeCount = 0;
+            Object.values(notifVal).forEach(notif => {
+              if (notif) {
+                const notifId = notif.notificationId || notif.id;
+                const related = notif.relatedId;
+                const isAlreadyTracked = (sosVal[notifId] || (related && sosVal[related])) ||
+                                         (reportVal[notifId] || (related && reportVal[related]));
+                if (!isAlreadyTracked) {
+                  allItems.push({
+                    id: notifId,
+                    title: notif.title,
+                    detail: notif.message,
+                    user: notif.userId,
+                    lat: notif.latitude,
+                    lng: notif.longitude,
+                    time: notif.time,
+                    type: notif.type,
+                    category: notif.category,
+                    status: notif.status,
+                    archived: notif.archived,
+                    relatedId: notif.relatedId
+                  });
+                }
+              }
+            });
 
+            let activeCount = 0;
             allItems.forEach(data => {
               if (isEventFinished(data)) {
                 return; // Do not display finished or cancelled events in active live feed!
               }
-              const id = data.id || data.sessionId;
-              if (id) activeSessionsCache[id] = data;
-
               const cat = getEventCategory(data, data.type === 'SAFEWALK' ? 'SafeWalk' : 'SOS');
-              addAlertCard(data, cat);
-              if (cat === 'SafeWalk') {
-                updateSafeWalkMap(data);
-              } else if (data.lat && data.lng) {
-                addMapMarker(id, data.lat, data.lng, data.title || cat, cat);
-              }
+              handleRealtimeItemUpdate(data, cat);
               activeCount++;
             });
 
@@ -648,8 +694,16 @@
       });
     }
 
+    let isFirebaseListenersInitialized = false;
     function initFirebaseRealtimeListeners() {
       if (!verifyAdminAccess()) return;
+      if (isFirebaseListenersInitialized) return;
+      isFirebaseListenersInitialized = true;
+
+      // Clean teardown before attaching to prevent duplicate listeners
+      caremeDb.ref('sos').off();
+      caremeDb.ref('reports').off();
+      caremeDb.ref('allNotifications').off();
 
       caremeDb.ref('sos').on('child_added', (snapshot) => {
         handleRealtimeItemUpdate(snapshot.val(), 'SOS');
@@ -691,7 +745,8 @@
             type: notif.type,
             category: notif.category,
             status: notif.status,
-            archived: notif.archived
+            archived: notif.archived,
+            relatedId: notif.relatedId
           }, notif.category || 'SafeWalk');
         }
       });
@@ -710,7 +765,8 @@
             type: notif.type,
             category: notif.category,
             status: notif.status,
-            archived: notif.archived
+            archived: notif.archived,
+            relatedId: notif.relatedId
           }, notif.category || 'SafeWalk');
         }
       });
@@ -735,10 +791,11 @@
         emptyState.classList.add('hidden');
       }
 
-      const id = data.id || data.sessionId || data.notificationId || ('alt_' + Math.floor(Math.random() * 1000000));
+      const existingKey = findExistingEventKey(data);
+      const id = existingKey || data.id || data.sessionId || data.notificationId || ('alt_' + Math.floor(Math.random() * 1000000));
       const cardId = `alert-${id}`;
 
-      if (document.getElementById(cardId)) {
+      if (document.getElementById(cardId) || (data.relatedId && document.getElementById(`alert-${data.relatedId}`))) {
         if (category === 'SafeWalk') updateSafeWalkCard(data);
         return;
       }
@@ -1167,12 +1224,28 @@
     // MANUAL COMPLETE, CANCEL & CLEAR HANDLERS
     // ==========================================
     function removeAlertFromUI(id) {
+      if (!id) return;
       const card = document.getElementById('alert-' + id);
       if (card) {
         card.remove();
       }
       if (activeSessionsCache[id]) {
+        const item = activeSessionsCache[id];
+        if (item && item.relatedId) {
+          const relCard = document.getElementById('alert-' + item.relatedId);
+          if (relCard) relCard.remove();
+          delete activeSessionsCache[item.relatedId];
+          if (markers[item.relatedId]) { adminMap && adminMap.removeLayer(markers[item.relatedId]); delete markers[item.relatedId]; }
+        }
         delete activeSessionsCache[id];
+      }
+      for (const [key, item] of Object.entries(activeSessionsCache)) {
+        if (item.relatedId === id) {
+          const relCard = document.getElementById('alert-' + key);
+          if (relCard) relCard.remove();
+          delete activeSessionsCache[key];
+          if (markers[key]) { adminMap && adminMap.removeLayer(markers[key]); delete markers[key]; }
+        }
       }
       if (adminMap) {
         if (markers[id]) { adminMap.removeLayer(markers[id]); delete markers[id]; }
@@ -1196,6 +1269,11 @@
           resolvedAt: timeNow,
           resolvedBy: adminName
         });
+        caremeDb.ref('allNotifications/' + id).update({
+          status: 'RESOLVED',
+          archived: true,
+          resolvedAt: timeNow
+        });
         logAdminEvent('ADMIN_RESOLVE_REPORT', id, { status: 'RESOLVED' });
       } else if (category === 'SafeWalk') {
         const completedData = {
@@ -1207,6 +1285,11 @@
         };
         caremeDb.ref('safeWalkSessions/' + id).update(completedData);
         caremeDb.ref('sos/' + id).update(completedData);
+        caremeDb.ref('allNotifications/' + id).update({
+          status: 'COMPLETED',
+          archived: true,
+          resolvedAt: timeNow
+        });
         channel.postMessage({ type: 'END_SAFEWALK', payload: { id: id, ...completedData } });
         logAdminEvent('ADMIN_COMPLETE_SAFEWALK', id, { status: 'COMPLETED' });
       } else if (category === 'SOS') {
@@ -1216,6 +1299,27 @@
           resolvedAt: timeNow,
           resolvedBy: adminName
         });
+        caremeDb.ref('allNotifications/' + id).update({
+          status: 'RESOLVED',
+          archived: true,
+          resolvedAt: timeNow
+        });
+        const cachedItem = activeSessionsCache[id];
+        if (cachedItem && cachedItem.relatedId && cachedItem.relatedId !== id) {
+          caremeDb.ref('sos/' + cachedItem.relatedId).update({
+            status: 'RESOLVED',
+            archived: true,
+            resolvedAt: timeNow,
+            resolvedBy: adminName
+          });
+          caremeDb.ref('allNotifications/' + cachedItem.relatedId).update({
+            status: 'RESOLVED',
+            archived: true,
+            resolvedAt: timeNow
+          });
+        }
+        channel.postMessage({ type: 'STOP_TRACKING', payload: { id: id, status: 'RESOLVED' } });
+        channel.postMessage({ type: 'RESOLVE_SOS', payload: { id: id, status: 'RESOLVED' } });
         logAdminEvent('ADMIN_RESOLVE_SOS', id, { status: 'RESOLVED' });
       } else {
         caremeDb.ref('allNotifications/' + id).update({
@@ -1243,6 +1347,11 @@
           cancelledAt: timeNow,
           cancelledBy: adminName
         });
+        caremeDb.ref('allNotifications/' + id).update({
+          status: 'CANCELLED',
+          archived: true,
+          cancelledAt: timeNow
+        });
         logAdminEvent('ADMIN_CANCEL_REPORT', id, { status: 'CANCELLED' });
       } else if (category === 'SafeWalk') {
         const cancelData = {
@@ -1254,6 +1363,11 @@
         };
         caremeDb.ref('safeWalkSessions/' + id).update(cancelData);
         caremeDb.ref('sos/' + id).update(cancelData);
+        caremeDb.ref('allNotifications/' + id).update({
+          status: 'ended',
+          archived: true,
+          resolvedAt: timeNow
+        });
         channel.postMessage({ type: 'STOP_TRACKING', payload: { id: id } });
         logAdminEvent('ADMIN_CANCEL_SAFEWALK', id, { status: 'CANCELLED' });
       } else if (category === 'SOS') {
@@ -1263,6 +1377,26 @@
           cancelledAt: timeNow,
           cancelledBy: adminName
         });
+        caremeDb.ref('allNotifications/' + id).update({
+          status: 'CANCELLED',
+          archived: true,
+          cancelledAt: timeNow
+        });
+        const cachedItem = activeSessionsCache[id];
+        if (cachedItem && cachedItem.relatedId && cachedItem.relatedId !== id) {
+          caremeDb.ref('sos/' + cachedItem.relatedId).update({
+            status: 'CANCELLED',
+            archived: true,
+            cancelledAt: timeNow,
+            cancelledBy: adminName
+          });
+          caremeDb.ref('allNotifications/' + cachedItem.relatedId).update({
+            status: 'CANCELLED',
+            archived: true,
+            cancelledAt: timeNow
+          });
+        }
+        channel.postMessage({ type: 'STOP_TRACKING', payload: { id: id, status: 'CANCELLED' } });
         logAdminEvent('ADMIN_CANCEL_SOS', id, { status: 'CANCELLED' });
       } else {
         caremeDb.ref('allNotifications/' + id).update({
@@ -1420,14 +1554,14 @@
       if (!payload) return;
 
       if (type === 'NEW_NOTIFICATION') {
-        addAlertCard(payload, payload.category);
+        handleRealtimeItemUpdate(payload, payload.category);
       } else if (type === 'TRIGGER_SOS') {
-        addAlertCard(payload, 'SOS');
+        handleRealtimeItemUpdate(payload, 'SOS');
       } else if (type === 'START_SAFEWALK') {
-        addAlertCard(payload, 'SafeWalk');
+        handleRealtimeItemUpdate(payload, 'SafeWalk');
         updateSafeWalkMap(payload);
       } else if (type === 'SUBMIT_REPORT') {
-        addAlertCard(payload, 'Report');
+        handleRealtimeItemUpdate(payload, 'Report');
       } else if (type === 'GPS_UPDATE') {
         if (payload.type === 'SAFEWALK' || payload.category === 'SafeWalk') {
           updateSafeWalkCard(payload);
@@ -1436,8 +1570,9 @@
           markers[payload.id].setLatLng([payload.lat, payload.lng]);
         }
       } else if (type === 'END_SAFEWALK') {
-        updateSafeWalkCard({ ...payload, status: 'completed', routeStatus: 'ถึงปลายทางแล้ว' });
-        updateSafeWalkMap({ ...payload, status: 'completed', routeStatus: 'ถึงปลายทางแล้ว' });
+        handleRealtimeItemUpdate({ ...payload, status: 'completed', routeStatus: 'ถึงปลายทางแล้ว' }, 'SafeWalk');
+      } else if (type === 'STOP_TRACKING') {
+        handleRealtimeItemUpdate({ ...payload, status: 'ended', routeStatus: 'ยกเลิกการเดินทาง' }, payload.category || 'SOS');
       }
       updateSummaryDashboardStats();
     };
